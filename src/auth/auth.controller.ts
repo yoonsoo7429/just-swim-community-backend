@@ -1,4 +1,12 @@
-import { Controller, Get, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+  Body,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
@@ -6,6 +14,7 @@ import type { Response } from 'express';
 import { KakaoAuthGuard } from './guards/kakao.guard';
 import { GoogleAuthGuard } from './guards/google.guard';
 import { NaverAuthGuard } from './guards/naver.guard';
+import { SignUpDto, SignInDto, AuthResponseDto } from './dto';
 
 @Controller('auth')
 export class AuthController {
@@ -13,6 +22,39 @@ export class AuthController {
     private authService: AuthService,
     private usersService: UsersService,
   ) {}
+
+  // 이메일/비밀번호 회원가입
+  @Post('signup')
+  async signup(@Body() signUpDto: SignUpDto, @Res() res: Response) {
+    const result: AuthResponseDto = await this.authService.signup(signUpDto);
+
+    // JWT 토큰을 쿠키에 저장
+    res.cookie('access_token', result.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
+    });
+
+    return res.json(result);
+  }
+
+  // 이메일/비밀번호 로그인
+  @Post('signin')
+  async signin(@Body() signInDto: SignInDto, @Res() res: Response) {
+    const result: AuthResponseDto =
+      await this.authService.emailSignin(signInDto);
+
+    // JWT 토큰을 쿠키에 저장
+    res.cookie('access_token', result.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
+    });
+
+    return res.json(result);
+  }
 
   @Get('kakao')
   @UseGuards(KakaoAuthGuard)

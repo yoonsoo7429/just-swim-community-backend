@@ -7,13 +7,16 @@ import { TrainingProgram } from '../../training/entities/training-program.entity
 @Entity('users')
 export class User extends BaseEntity {
   @Column({ type: 'varchar', length: 20, default: 'local' })
-  provider: string; // local, google, github, etc.
+  provider: string;
 
   @Column({ nullable: true })
-  providerId: string; // OAuth provider의 ID
+  providerId: string;
 
   @Column({ unique: true })
   email: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  password: string;
 
   @Column({ type: 'varchar', nullable: true })
   name: string;
@@ -22,7 +25,7 @@ export class User extends BaseEntity {
   profileImage: string;
 
   @Column({ type: 'varchar', length: 20, default: 'beginner' })
-  level: string; // beginner, intermediate, advanced, expert
+  level: string;
 
   @OneToMany('SwimmingRecord', 'user')
   swimmingRecords: SwimmingRecord[];
