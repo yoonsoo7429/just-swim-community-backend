@@ -29,6 +29,44 @@ export class AuthService {
     return user;
   }
 
+  async validateGoogleUser(profile: any): Promise<User> {
+    const { id, emails, displayName, photos } = profile;
+
+    let user = await this.usersService.findByGoogleId(id);
+
+    if (!user) {
+      // 새 사용자 생성
+      user = await this.usersService.create({
+        email: emails[0]?.value,
+        name: displayName,
+        profileImage: photos[0]?.value,
+        provider: 'google',
+        providerId: id,
+      });
+    }
+
+    return user;
+  }
+
+  async validateNaverUser(profile: any): Promise<User> {
+    const { id, email, nickname, profile_image } = profile;
+
+    let user = await this.usersService.findByNaverId(id);
+
+    if (!user) {
+      // 새 사용자 생성
+      user = await this.usersService.create({
+        email: email,
+        name: nickname,
+        profileImage: profile_image,
+        provider: 'naver',
+        providerId: id,
+      });
+    }
+
+    return user;
+  }
+
   async signin(user: User) {
     const payload = {
       sub: user.id,

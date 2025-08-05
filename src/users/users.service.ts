@@ -28,6 +28,18 @@ export class UsersService {
     });
   }
 
+  async findByGoogleId(googleId: string): Promise<User | null> {
+    return await this.userRepository.findOne({
+      where: { providerId: googleId, provider: 'google' },
+    });
+  }
+
+  async findByNaverId(naverId: string): Promise<User | null> {
+    return await this.userRepository.findOne({
+      where: { providerId: naverId, provider: 'naver' },
+    });
+  }
+
   async create(userData: Partial<User>): Promise<User> {
     const user = this.userRepository.create(userData);
     return await this.userRepository.save(user);

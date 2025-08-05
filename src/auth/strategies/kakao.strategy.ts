@@ -10,10 +10,11 @@ export class KakaoStrategy extends PassportStrategy(Strategy, 'kakao') {
     private configService: ConfigService,
     private authService: AuthService,
   ) {
-    super({
-      clientID: configService.get('KAKAO_CLIENT_ID'),
-      callbackURL: configService.get('KAKAO_CALLBACK_URL'),
-    });
+    const options = {
+      clientID: configService.get('KAKAO_CLIENT_ID')!,
+      callbackURL: configService.get('KAKAO_CALLBACK_URL')!,
+    };
+    super(options);
   }
 
   async validate(
