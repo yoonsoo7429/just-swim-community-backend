@@ -6,25 +6,42 @@ import {
   Delete,
   Param,
   ParseIntPipe,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { CommentsService } from './comments.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('comments')
 export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
   @Post()
-  create(@Body() commentData: any) {
-    return this.commentsService.create(commentData);
+  @UseGuards(JwtAuthGuard)
+  create(
+    @Body() commentData: { content: string; postId: number },
+    @Request() req,
+  ) {
+    return this.commentsService.create({
+      ...commentData,
+      authorId: req.user.id,
+    });
   }
 
-  @Get('swimming-record/:id')
-  findBySwimmingRecord(@Param('id', ParseIntPipe) id: number) {
-    return this.commentsService.findBySwimmingRecord(id);
+  @Get('post/:id')
+  findByPost(@Param('id', ParseIntPipe) id: number) {
+    return this.commentsService.findByPost(id);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.commentsService.remove(id);
+  @UseGuards(JwtAuthGuard)
+  remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    return this.commentsService.remove(id, req.user.id);
+  }
+
+  @Post(':id/like')
+  @UseGuards(JwtAuthGuard)
+  likeComment(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    return this.commentsService.likeComment(id, req.user.id);
   }
 }

@@ -19,12 +19,16 @@ export class SwimmingService {
 
   async findAll(): Promise<SwimmingRecord[]> {
     return await this.swimmingRepository.find({
+      relations: ['user'],
       order: { createdAt: 'DESC' },
     });
   }
 
   async findOne(id: number): Promise<SwimmingRecord> {
-    const swimming = await this.swimmingRepository.findOne({ where: { id } });
+    const swimming = await this.swimmingRepository.findOne({ 
+      where: { id },
+      relations: ['user'],
+    });
     if (!swimming) {
       throw new NotFoundException(`Swimming record with ID ${id} not found`);
     }

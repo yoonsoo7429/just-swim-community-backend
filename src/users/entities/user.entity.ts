@@ -3,6 +3,7 @@ import { BaseEntity } from '../../common/entities/base.entity';
 import { SwimmingRecord } from '../../swimming/entities/swimming.entity';
 import { Comment } from '../../comments/entities/comment.entity';
 import { TrainingProgram } from '../../training/entities/training-program.entity';
+import { Post } from '../../posts/entities/post.entity';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -30,9 +31,12 @@ export class User extends BaseEntity {
   @OneToMany('SwimmingRecord', 'user')
   swimmingRecords: SwimmingRecord[];
 
-  @OneToMany('Comment', 'user')
+  @OneToMany(() => Comment, (comment) => comment.author)
   comments: Comment[];
 
   @OneToMany('TrainingProgram', 'user')
   trainingPrograms: TrainingProgram[];
+
+  @OneToMany(() => Post, (post) => post.author)
+  posts: Post[];
 }

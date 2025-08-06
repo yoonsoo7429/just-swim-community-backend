@@ -8,6 +8,8 @@ import { UsersModule } from './users/users.module';
 import { CommentsModule } from './comments/comments.module';
 import { TrainingModule } from './training/training.module';
 import { AuthModule } from './auth/auth.module';
+import { PostsModule } from './posts/posts.module';
+import { CommunityModule } from './community/community.module';
 import { envValidationSchema } from './config/env.validation';
 
 @Module({
@@ -26,7 +28,7 @@ import { envValidationSchema } from './config/env.validation';
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('NODE_ENV') !== 'production',
+        synchronize: true,
       }),
       inject: [ConfigService],
     }),
@@ -35,6 +37,8 @@ import { envValidationSchema } from './config/env.validation';
     CommentsModule,
     TrainingModule,
     AuthModule,
+    PostsModule,
+    CommunityModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -29,21 +29,25 @@ export class SwimmingController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.swimmingService.findAll();
   }
 
   @Get('stats')
+  @UseGuards(JwtAuthGuard)
   getStats() {
     return this.swimmingService.getStats();
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.swimmingService.findOne(id);
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateSwimmingDto: UpdateSwimmingDto,
@@ -52,6 +56,7 @@ export class SwimmingController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.swimmingService.remove(id);
   }

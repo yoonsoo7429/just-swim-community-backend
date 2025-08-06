@@ -37,7 +37,6 @@ export class CreateSwimmingDto {
   @IsDateString()
   sessionDate?: string;
 
-  @IsOptional()
   @IsNumber()
-  userId?: number;
+  userId: number;
 }
