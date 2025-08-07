@@ -32,7 +32,7 @@ export class PostsService {
 
     const post = this.postsRepository.create({
       ...createPostDto,
-      authorId: userId,
+      author: { id: userId },
     });
 
     const savedPost = await this.postsRepository.save(post);
@@ -104,7 +104,7 @@ export class PostsService {
   ): Promise<PostResponseDto> {
     const post = await this.findOne(id);
 
-    if (post.authorId !== userId) {
+    if (post.author.id !== userId) {
       throw new ForbiddenException('게시물을 수정할 권한이 없습니다.');
     }
 
@@ -115,7 +115,7 @@ export class PostsService {
   async remove(id: number, userId: number): Promise<void> {
     const post = await this.findOne(id);
 
-    if (post.authorId !== userId) {
+    if (post.author.id !== userId) {
       throw new ForbiddenException('게시물을 삭제할 권한이 없습니다.');
     }
 
@@ -125,7 +125,7 @@ export class PostsService {
   async likePost(id: number, userId: number): Promise<PostResponseDto> {
     const post = await this.postsRepository.findOne({
       where: { id },
-      relations: ['likedBy'],
+      relations: ['likedBy', 'author', 'comments'],
     });
 
     if (!post) {
@@ -196,7 +196,6 @@ export class PostsService {
       content: post.content,
       category: post.category,
       author: post.author,
-      authorId: post.authorId,
       likes: post.likedBy?.length || 0,
       comments: post.comments?.length || 0,
       tags: post.tags,

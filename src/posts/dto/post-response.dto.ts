@@ -6,7 +6,6 @@ export class PostResponseDto {
   content: string;
   category: string;
   author: User;
-  authorId: number;
   likes: number;
   comments: number;
   tags?: string[];

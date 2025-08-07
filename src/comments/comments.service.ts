@@ -4,10 +4,11 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { Comment } from './entities/comment.entity';
 import { User } from '../users/entities/user.entity';
 import { Post } from '../posts/entities/post.entity';
+import moment from 'moment-timezone';
 
 @Injectable()
 export class CommentsService {
@@ -43,17 +44,28 @@ export class CommentsService {
     const comment = this.commentRepository.create({
       content: commentData.content,
       author: user,
-      authorId: commentData.authorId,
       post: post,
-      postId: commentData.postId,
     });
 
     return await this.commentRepository.save(comment);
   }
 
+  async findOne(id: number): Promise<Comment> {
+    const comment = await this.commentRepository.findOne({
+      where: { id },
+      relations: ['author', 'post', 'likedBy'],
+    });
+
+    if (!comment) {
+      throw new NotFoundException('댓글을 찾을 수 없습니다.');
+    }
+
+    return comment;
+  }
+
   async findByPost(postId: number): Promise<Comment[]> {
     const comments = await this.commentRepository.find({
-      where: { postId },
+      where: { post: { id: postId } },
       relations: ['author', 'likedBy'],
       order: { createdAt: 'ASC' },
     });
@@ -74,7 +86,7 @@ export class CommentsService {
       throw new NotFoundException('댓글을 찾을 수 없습니다.');
     }
 
-    if (comment.authorId !== userId) {
+    if (comment.author.id !== userId) {
       throw new ForbiddenException('댓글을 삭제할 권한이 없습니다.');
     }
 
@@ -113,12 +125,12 @@ export class CommentsService {
   }
 
   async countTodayComments(): Promise<number> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const startOfDay = moment().tz('Asia/Seoul').startOf('day').toDate();
+    const endOfDay = moment().tz('Asia/Seoul').endOf('day').toDate();
 
-    return await this.commentRepository.count({
+    return this.commentRepository.count({
       where: {
-        createdAt: today,
+        createdAt: Between(startOfDay, endOfDay),
       },
     });
   }

@@ -8,6 +8,7 @@ import {
   UpdateDateColumn,
   ManyToMany,
   JoinTable,
+  JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Comment } from '../../comments/entities/comment.entity';
@@ -40,10 +41,8 @@ export class Post {
   category: string;
 
   @ManyToOne(() => User, (user) => user.posts)
+  @JoinColumn({ name: 'authorId' })
   author: User;
-
-  @Column()
-  authorId: number;
 
   @OneToMany(() => Comment, (comment) => comment.post)
   comments: Comment[];

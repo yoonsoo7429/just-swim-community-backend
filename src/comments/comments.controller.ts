@@ -33,6 +33,11 @@ export class CommentsController {
     return this.commentsService.findByPost(id);
   }
 
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.commentsService.findOne(id);
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   remove(@Param('id', ParseIntPipe) id: number, @Request() req) {

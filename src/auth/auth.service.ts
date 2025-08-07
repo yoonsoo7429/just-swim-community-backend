@@ -70,7 +70,7 @@ export class AuthService {
       // 새 사용자 생성
       user = await this.usersService.create({
         email: _json.kakao_account?.email,
-        name: _json.kakao_account.nickname,
+        name: _json.properties.nickname,
         profileImage: _json.properties.profile_image,
         provider: 'kakao',
         providerId: id.toString(),
