@@ -5,7 +5,20 @@ import {
   IsDateString,
   Min,
   Max,
+  IsArray,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class StrokeDto {
+  @IsString()
+  style: string;
+
+  @IsNumber()
+  @Min(1)
+  @Max(10000)
+  distance: number;
+}
 
 export class CreateSwimmingDto {
   @IsString()
@@ -16,17 +29,30 @@ export class CreateSwimmingDto {
   description?: string;
 
   @IsNumber()
-  @Min(1)
-  @Max(1000)
-  duration: number;
+  @Min(25)
+  @Max(100)
+  poolLength: number;
+
+  @IsString()
+  sessionStartTime: string;
+
+  @IsString()
+  sessionEndTime: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => StrokeDto)
+  strokes: StrokeDto[];
 
   @IsNumber()
   @Min(1)
   @Max(10000)
-  distance: number;
+  totalDistance: number;
 
-  @IsString()
-  style: string;
+  @IsNumber()
+  @Min(0.1)
+  @Max(1000)
+  totalDuration: number;
 
   @IsOptional()
   @IsNumber()

@@ -6,9 +6,9 @@ import {
   Patch,
   Param,
   Delete,
-  ParseIntPipe,
   UseGuards,
-  Req,
+  Request,
+  Query,
 } from '@nestjs/common';
 import { SwimmingService } from './swimming.service';
 import { CreateSwimmingDto } from './dto/create-swimming.dto';
@@ -21,43 +21,61 @@ export class SwimmingController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  create(@Body() createSwimmingDto: CreateSwimmingDto, @Req() req: any) {
-    return this.swimmingService.create({
-      ...createSwimmingDto,
-      userId: req.user.id,
-    });
+  create(@Body() createSwimmingDto: CreateSwimmingDto, @Request() req) {
+    createSwimmingDto.userId = req.user.id;
+    return this.swimmingService.create(createSwimmingDto);
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.swimmingService.findAll();
   }
 
-  @Get('stats')
+  @Get('my-records')
   @UseGuards(JwtAuthGuard)
+  findMyRecords(@Request() req) {
+    return this.swimmingService.findByUser(req.user.id);
+  }
+
+  @Get('recent')
+  getRecentRecords(@Query('limit') limit?: string) {
+    const limitNum = limit ? parseInt(limit) : 10;
+    return this.swimmingService.getRecentRecords(limitNum);
+  }
+
+  @Get('style/:style')
+  getRecordsByStyle(@Param('style') style: string) {
+    return this.swimmingService.getRecordsByStyle(style);
+  }
+
+  @Get('stats')
   getStats() {
     return this.swimmingService.getStats();
   }
 
-  @Get(':id')
+  @Get('my-stats')
   @UseGuards(JwtAuthGuard)
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.swimmingService.findOne(id);
+  getMyStats(@Request() req) {
+    return this.swimmingService.getUserStats(req.user.id);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.swimmingService.findOne(+id);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() updateSwimmingDto: UpdateSwimmingDto,
   ) {
-    return this.swimmingService.update(id, updateSwimmingDto);
+    return this.swimmingService.update(+id, updateSwimmingDto);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.swimmingService.remove(id);
+  remove(@Param('id') id: string) {
+    return this.swimmingService.remove(+id);
   }
 }
