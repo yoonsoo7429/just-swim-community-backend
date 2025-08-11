@@ -28,13 +28,13 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', length: 20, default: 'beginner' })
   level: string;
 
-  @OneToMany('SwimmingRecord', 'user')
+  @OneToMany(() => SwimmingRecord, (record) => record.user)
   swimmingRecords: SwimmingRecord[];
 
   @OneToMany(() => Comment, (comment) => comment.author)
   comments: Comment[];
 
-  @OneToMany('TrainingProgram', 'user')
+  @OneToMany(() => TrainingProgram, (program) => program.user)
   trainingPrograms: TrainingProgram[];
 
   @OneToMany(() => Post, (post) => post.author)

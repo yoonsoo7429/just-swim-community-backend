@@ -1,7 +1,8 @@
 import { Entity, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
-import { Comment } from '../../comments/entities/comment.entity';
+import { SwimmingComment } from './swimming-comment.entity';
+import { SwimmingLike } from './swimming-like.entity';
 
 interface StrokeRecord {
   style: string;
@@ -17,7 +18,7 @@ export class SwimmingRecord extends BaseEntity {
   description: string;
 
   @Column({ type: 'int' })
-  poolLength: number; // 수영장 길이 (미터)
+  poolLength: 25 | 50; // 수영장 길이 (25m 또는 50m)
 
   @Column({ type: 'varchar', length: 10 })
   sessionStartTime: string; // HH:MM 형식
@@ -43,12 +44,23 @@ export class SwimmingRecord extends BaseEntity {
   @Column({ type: 'varchar', length: 20, default: 'public' })
   visibility: string; // public, private, friends
 
-  @ManyToOne('User', { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @OneToMany('Comment', 'swimmingRecord', {
+  @OneToMany(() => SwimmingComment, (comment) => comment.swimmingRecord, {
     cascade: true,
   })
-  comments: Comment[];
+  comments: SwimmingComment[];
+
+  @OneToMany(() => SwimmingLike, (like) => like.swimmingRecord, {
+    cascade: true,
+  })
+  likes: SwimmingLike[];
+
+  @Column({ type: 'int', default: 0 })
+  likesCount: number;
+
+  @Column({ type: 'int', default: 0 })
+  commentsCount: number;
 }

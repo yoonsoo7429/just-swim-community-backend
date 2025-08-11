@@ -7,12 +7,13 @@ import {
   Param,
   Delete,
   UseGuards,
-  Request,
   Query,
+  Request,
 } from '@nestjs/common';
 import { SwimmingService } from './swimming.service';
 import { CreateSwimmingDto } from './dto/create-swimming.dto';
 import { UpdateSwimmingDto } from './dto/update-swimming.dto';
+import { CreateCommentDto } from './dto/create-comment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('swimming')
@@ -21,9 +22,8 @@ export class SwimmingController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  create(@Body() createSwimmingDto: CreateSwimmingDto, @Request() req) {
-    createSwimmingDto.userId = req.user.id;
-    return this.swimmingService.create(createSwimmingDto);
+  create(@Body() createSwimmingDto: CreateSwimmingDto, @Request() req: any) {
+    return this.swimmingService.create(createSwimmingDto, req.user.id);
   }
 
   @Get()
@@ -77,5 +77,50 @@ export class SwimmingController {
   @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string) {
     return this.swimmingService.remove(+id);
+  }
+
+  // 좋아요 추가
+  @Post(':id/like')
+  @UseGuards(JwtAuthGuard)
+  addLike(@Param('id') id: string, @Request() req: any) {
+    return this.swimmingService.addLike(+id, req.user.id);
+  }
+
+  // 좋아요 제거
+  @Delete(':id/like')
+  @UseGuards(JwtAuthGuard)
+  removeLike(@Param('id') id: string, @Request() req: any) {
+    return this.swimmingService.removeLike(+id, req.user.id);
+  }
+
+  // 댓글 추가
+  @Post(':id/comments')
+  @UseGuards(JwtAuthGuard)
+  addComment(
+    @Param('id') id: string,
+    @Body() createCommentDto: CreateCommentDto,
+    @Request() req: any,
+  ) {
+    return this.swimmingService.addComment(+id, req.user.id, createCommentDto);
+  }
+
+  // 댓글 목록 조회
+  @Get(':id/comments')
+  getComments(@Param('id') id: string) {
+    return this.swimmingService.getComments(+id);
+  }
+
+  // 댓글 삭제
+  @Delete('comments/:commentId')
+  @UseGuards(JwtAuthGuard)
+  removeComment(@Param('commentId') commentId: string, @Request() req: any) {
+    return this.swimmingService.removeComment(+commentId, req.user.id);
+  }
+
+  // 사용자가 특정 기록을 좋아요했는지 확인
+  @Get(':id/like-status')
+  @UseGuards(JwtAuthGuard)
+  getLikeStatus(@Param('id') id: string, @Request() req: any) {
+    return this.swimmingService.isLikedByUser(+id, req.user.id);
   }
 }

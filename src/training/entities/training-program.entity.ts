@@ -26,11 +26,11 @@ export class TrainingProgram extends BaseEntity {
   @Column({ type: 'boolean', default: false })
   isPublished: boolean;
 
-  @ManyToOne('User', { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @OneToMany('TrainingSession', 'trainingProgram', {
+  @OneToMany(() => TrainingSession, (session) => session.trainingProgram, {
     cascade: true,
   })
   sessions: TrainingSession[];

@@ -25,7 +25,7 @@ export class TrainingSession extends BaseEntity {
   @Column({ type: 'text' })
   workout: string;
 
-  @ManyToOne('TrainingProgram', { onDelete: 'CASCADE' })
+  @ManyToOne(() => TrainingProgram, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'trainingProgramId' })
   trainingProgram: TrainingProgram;
 

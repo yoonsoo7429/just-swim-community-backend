@@ -29,9 +29,7 @@ export class CreateSwimmingDto {
   description?: string;
 
   @IsNumber()
-  @Min(25)
-  @Max(100)
-  poolLength: number;
+  poolLength: 25 | 50;
 
   @IsString()
   sessionStartTime: string;
@@ -62,7 +60,4 @@ export class CreateSwimmingDto {
   @IsOptional()
   @IsDateString()
   sessionDate?: string;
-
-  @IsNumber()
-  userId: number;
 }

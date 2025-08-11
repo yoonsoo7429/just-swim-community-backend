@@ -1,19 +1,48 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SwimmingRecord } from './entities/swimming.entity';
 import { CreateSwimmingDto } from './dto/create-swimming.dto';
 import { UpdateSwimmingDto } from './dto/update-swimming.dto';
+import { User } from '../users/entities/user.entity';
+import { SwimmingLike } from './entities/swimming-like.entity';
+import { SwimmingComment } from './entities/swimming-comment.entity';
+import { CreateCommentDto } from './dto/create-comment.dto';
 
 @Injectable()
 export class SwimmingService {
   constructor(
     @InjectRepository(SwimmingRecord)
     private swimmingRepository: Repository<SwimmingRecord>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    @InjectRepository(SwimmingLike)
+    private swimmingLikeRepository: Repository<SwimmingLike>,
+    @InjectRepository(SwimmingComment)
+    private swimmingCommentRepository: Repository<SwimmingComment>,
   ) {}
 
-  async create(createSwimmingDto: CreateSwimmingDto): Promise<SwimmingRecord> {
-    const swimming = this.swimmingRepository.create(createSwimmingDto);
+  async create(
+    createSwimmingDto: CreateSwimmingDto,
+    userId: number,
+  ): Promise<SwimmingRecord> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const swimming = this.swimmingRepository.create({
+      ...createSwimmingDto,
+      user: user,
+    });
+
     return await this.swimmingRepository.save(swimming);
   }
 
@@ -175,5 +204,134 @@ export class SwimmingService {
         record.strokes &&
         record.strokes.some((stroke) => stroke.style === style),
     );
+  }
+
+  // 좋아요 추가
+  async addLike(swimmingRecordId: number, userId: number): Promise<void> {
+    const existingLike = await this.swimmingLikeRepository.findOne({
+      where: {
+        swimmingRecord: { id: swimmingRecordId },
+        user: { id: userId },
+      },
+    });
+
+    if (existingLike) {
+      throw new ConflictException('Already liked this record');
+    }
+
+    const swimmingRecord = await this.findOne(swimmingRecordId);
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const like = new SwimmingLike();
+    like.swimmingRecord = swimmingRecord;
+    like.user = user;
+
+    await this.swimmingLikeRepository.save(like);
+
+    // 좋아요 수 증가
+    swimmingRecord.likesCount += 1;
+    await this.swimmingRepository.save(swimmingRecord);
+  }
+
+  // 좋아요 제거
+  async removeLike(swimmingRecordId: number, userId: number): Promise<void> {
+    const like = await this.swimmingLikeRepository.findOne({
+      where: {
+        swimmingRecord: { id: swimmingRecordId },
+        user: { id: userId },
+      },
+    });
+
+    if (!like) {
+      throw new NotFoundException('Like not found');
+    }
+
+    await this.swimmingLikeRepository.remove(like);
+
+    // 좋아요 수 감소
+    const swimmingRecord = await this.findOne(swimmingRecordId);
+    swimmingRecord.likesCount = Math.max(0, swimmingRecord.likesCount - 1);
+    await this.swimmingRepository.save(swimmingRecord);
+  }
+
+  // 댓글 추가
+  async addComment(
+    swimmingRecordId: number,
+    userId: number,
+    createCommentDto: CreateCommentDto,
+  ): Promise<SwimmingComment> {
+    const swimmingRecord = await this.findOne(swimmingRecordId);
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const comment = new SwimmingComment();
+    comment.content = createCommentDto.content;
+    comment.swimmingRecord = swimmingRecord;
+    comment.user = user;
+    comment.likes = 0;
+
+    const savedComment = await this.swimmingCommentRepository.save(comment);
+
+    // 댓글 수 증가
+    swimmingRecord.commentsCount += 1;
+    await this.swimmingRepository.save(swimmingRecord);
+
+    return savedComment;
+  }
+
+  // 댓글 목록 조회
+  async getComments(swimmingRecordId: number): Promise<SwimmingComment[]> {
+    return await this.swimmingCommentRepository.find({
+      where: { swimmingRecord: { id: swimmingRecordId } },
+      relations: ['user'],
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  // 댓글 삭제
+  async removeComment(commentId: number, userId: number): Promise<void> {
+    const comment = await this.swimmingCommentRepository.findOne({
+      where: { id: commentId },
+      relations: ['user', 'swimmingRecord'],
+    });
+
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    if (comment.user.id !== userId) {
+      throw new NotFoundException('Cannot delete comment of another user');
+    }
+
+    await this.swimmingCommentRepository.remove(comment);
+
+    // 댓글 수 감소
+    const swimmingRecord = await this.findOne(comment.swimmingRecord.id);
+    swimmingRecord.commentsCount = Math.max(
+      0,
+      swimmingRecord.commentsCount - 1,
+    );
+    await this.swimmingRepository.save(swimmingRecord);
+  }
+
+  // 사용자가 특정 기록을 좋아요했는지 확인
+  async isLikedByUser(
+    swimmingRecordId: number,
+    userId: number,
+  ): Promise<boolean> {
+    const like = await this.swimmingLikeRepository.findOne({
+      where: {
+        swimmingRecord: { id: swimmingRecordId },
+        user: { id: userId },
+      },
+    });
+    return !!like;
   }
 }
