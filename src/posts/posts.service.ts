@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Not, IsNull, In } from 'typeorm';
 import { Post } from './entities/post.entity';
 import { CreatePostDto, UpdatePostDto } from './dto';
 import { PostResponseDto } from './dto/post-response.dto';
@@ -180,6 +180,160 @@ export class PostsService {
       todayComments,
       activeUsers: parseInt(activeUsers.count) || 0,
     };
+  }
+
+  async findTrending(currentUserId?: number): Promise<PostResponseDto[]> {
+    // 최근 7일간의 게시물 중에서 인기순으로 정렬
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const posts = await this.postsRepository.find({
+      where: {
+        createdAt: sevenDaysAgo,
+      },
+      relations: ['author', 'comments', 'likedBy'],
+      order: { createdAt: 'DESC' },
+      take: 10,
+    });
+
+    // 시간 가중치를 적용한 점수 계산
+    const sortedPosts = posts.sort((a, b) => {
+      const aScore = this.calculateTrendingScore(a);
+      const bScore = this.calculateTrendingScore(b);
+      return bScore - aScore;
+    });
+
+    return sortedPosts.map((post) =>
+      this.transformToResponseDto(post, currentUserId),
+    );
+  }
+
+  async searchPosts(
+    query: string,
+    category?: string,
+    currentUserId?: number,
+  ): Promise<PostResponseDto[]> {
+    const queryBuilder = this.postsRepository
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.author', 'author')
+      .leftJoinAndSelect('post.comments', 'comments')
+      .leftJoinAndSelect('post.likedBy', 'likedBy')
+      .where(
+        '(post.title LIKE :query OR post.content LIKE :query OR post.tags LIKE :query)',
+        { query: `%${query}%` },
+      );
+
+    if (category && category !== '전체') {
+      queryBuilder.andWhere('post.category = :category', { category });
+    }
+
+    const posts = await queryBuilder
+      .orderBy('post.createdAt', 'DESC')
+      .getMany();
+
+    return posts.map((post) =>
+      this.transformToResponseDto(post, currentUserId),
+    );
+  }
+
+  async getPopularTags(): Promise<string[]> {
+    const posts = await this.postsRepository.find({
+      select: ['tags'],
+      where: {
+        tags: Not(IsNull()),
+      },
+    });
+
+    const tagCounts: { [key: string]: number } = {};
+    posts.forEach((post) => {
+      if (post.tags) {
+        post.tags.forEach((tag) => {
+          tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        });
+      }
+    });
+
+    return Object.entries(tagCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 20)
+      .map(([tag]) => tag);
+  }
+
+  async getCategories(): Promise<string[]> {
+    const categories = await this.postsRepository
+      .createQueryBuilder('post')
+      .select('post.category', 'category')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('post.category')
+      .orderBy('count', 'DESC')
+      .getRawMany();
+
+    return categories.map((cat) => cat.category);
+  }
+
+  async findRecent(currentUserId?: number): Promise<PostResponseDto[]> {
+    const posts = await this.postsRepository.find({
+      relations: ['author', 'comments', 'likedBy'],
+      order: { createdAt: 'DESC' },
+      take: 20,
+    });
+
+    return posts.map((post) =>
+      this.transformToResponseDto(post, currentUserId),
+    );
+  }
+
+  async getRecommendedPosts(userId: number): Promise<PostResponseDto[]> {
+    // 사용자의 관심사와 활동 패턴을 기반으로 추천
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      relations: ['posts', 'posts.category'],
+    });
+
+    if (!user) {
+      return [];
+    }
+
+    // 사용자가 좋아요한 게시물의 카테고리 분석
+    const likedPosts = await this.postsRepository.find({
+      relations: ['likedBy', 'category'],
+      where: {
+        likedBy: { id: userId },
+      },
+    });
+
+    const preferredCategories = likedPosts.map((post) => post.category);
+
+    // 선호 카테고리의 게시물 중 인기순으로 추천
+    const recommendedPosts = await this.postsRepository.find({
+      where: {
+        category: In(preferredCategories),
+        author: Not(userId),
+      },
+      relations: ['author', 'comments', 'likedBy'],
+      order: { createdAt: 'DESC' },
+      take: 10,
+    });
+
+    return recommendedPosts.map((post) =>
+      this.transformToResponseDto(post, userId),
+    );
+  }
+
+  private calculateTrendingScore(post: Post): number {
+    const now = new Date();
+    const postAge =
+      (now.getTime() - post.createdAt.getTime()) / (1000 * 60 * 60 * 24); // 일 단위
+
+    const likes = post.likedBy?.length || 0;
+    const comments = post.comments?.length || 0;
+
+    // 시간 가중치 (최신일수록 높은 점수)
+    const timeWeight = Math.max(0, 1 - postAge / 7);
+
+    // 인기도 점수
+    const popularityScore = likes * 2 + comments * 3;
+
+    return popularityScore * timeWeight;
   }
 
   private transformToResponseDto(

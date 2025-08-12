@@ -43,6 +43,12 @@ export class PostsController {
     return this.postsService.findPopular(currentUserId);
   }
 
+  @Get('category/:category')
+  findByCategory(@Param('category') category: string, @Request() req?: any) {
+    const currentUserId = req?.user?.id;
+    return this.postsService.findByCategory(category, currentUserId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @Request() req?: any) {
     const currentUserId = req?.user?.id;
