@@ -28,6 +28,40 @@ export class PostsController {
     return this.postsService.create(createPostDto, req.user.id);
   }
 
+  @Post('swimming-record')
+  @UseGuards(JwtAuthGuard)
+  createSwimmingRecordPost(
+    @Body() data: { recordId: string; additionalContent?: string },
+    @Request() req: any,
+  ) {
+    return this.postsService.createSwimmingRecordPost(
+      data.recordId,
+      req.user.id,
+      data.additionalContent || '수영 기록을 공유합니다.',
+    );
+  }
+
+  @Get('swimming-record/:recordId/status')
+  @UseGuards(JwtAuthGuard)
+  async getSwimmingRecordShareStatus(
+    @Param('recordId') recordId: string,
+    @Request() req: any,
+  ) {
+    console.log('req.user:', req.user);
+    console.log('req.user.id:', req.user?.id);
+
+    return this.postsService.getSwimmingRecordShareStatus(
+      parseInt(recordId),
+      req.user.id,
+    );
+  }
+
+  @Post('update-titles')
+  async updateExistingPostTitles() {
+    await this.postsService.updateExistingPostTitles();
+    return { message: '기존 게시물 제목이 업데이트되었습니다.' };
+  }
+
   @Get()
   findAll(@Query('category') category?: string, @Request() req?: any) {
     const currentUserId = req?.user?.id;

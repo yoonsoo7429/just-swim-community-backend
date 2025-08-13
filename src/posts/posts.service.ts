@@ -10,6 +10,7 @@ import { CreatePostDto, UpdatePostDto } from './dto';
 import { PostResponseDto } from './dto/post-response.dto';
 import { User } from '../users/entities/user.entity';
 import { CommentsService } from '../comments/comments.service';
+import { SwimmingRecord } from '../swimming/entities/swimming.entity';
 
 @Injectable()
 export class PostsService {
@@ -18,6 +19,8 @@ export class PostsService {
     private postsRepository: Repository<Post>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(SwimmingRecord)
+    private swimmingRecordsRepository: Repository<SwimmingRecord>,
     private commentsService: CommentsService,
   ) {}
 
@@ -39,9 +42,90 @@ export class PostsService {
     return this.transformToResponseDto(savedPost);
   }
 
+  async createSwimmingRecordPost(
+    recordId: string,
+    userId: number,
+    additionalContent?: string,
+  ): Promise<PostResponseDto> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    // 수영 기록 정보 가져오기
+    const swimmingRecord = await this.swimmingRecordsRepository.findOne({
+      where: { id: parseInt(recordId) },
+      select: ['title'],
+    });
+
+    if (!swimmingRecord) {
+      throw new NotFoundException('수영 기록을 찾을 수 없습니다.');
+    }
+
+    const post = this.postsRepository.create({
+      title: swimmingRecord.title,
+      content: additionalContent || '수영 기록을 공유합니다.',
+      category: '기록 공유',
+      author: { id: userId },
+      swimmingRecord: { id: parseInt(recordId) },
+    });
+
+    const savedPost = await this.postsRepository.save(post);
+    return this.transformToResponseDto(savedPost);
+  }
+
+  async getSwimmingRecordShareStatus(
+    recordId: number,
+    userId: number,
+  ): Promise<{ isShared: boolean; postId?: number }> {
+    console.log(`공유 상태 확인 요청: recordId=${recordId}, userId=${userId}`);
+
+    // 해당 수영 기록이 현재 사용자에 의해 커뮤니티에 공유되었는지 확인
+    const sharedPost = await this.postsRepository.findOne({
+      where: {
+        swimmingRecord: { id: recordId },
+        author: { id: userId },
+        category: '기록 공유',
+      },
+      select: ['id'],
+    });
+
+    console.log(`찾은 공유 게시물:`, sharedPost);
+
+    const result = {
+      isShared: !!sharedPost,
+      postId: sharedPost?.id,
+    };
+
+    console.log(`반환할 결과:`, result);
+    return result;
+  }
+
+  // 기존 게시물들의 제목을 실제 수영 기록 제목으로 업데이트
+  async updateExistingPostTitles(): Promise<void> {
+    const posts = await this.postsRepository.find({
+      where: { category: '기록 공유' },
+      relations: ['swimmingRecord'],
+    });
+
+    for (const post of posts) {
+      if (post.swimmingRecord && post.title.startsWith('수영 기록 공유 - ')) {
+        await this.postsRepository.update(post.id, {
+          title: post.swimmingRecord.title,
+        });
+      }
+    }
+  }
+
   async findAll(currentUserId?: number): Promise<PostResponseDto[]> {
     const posts = await this.postsRepository.find({
-      relations: ['author', 'comments', 'likedBy'],
+      relations: [
+        'author',
+        'comments',
+        'likedBy',
+        'swimmingRecord',
+        'trainingProgram',
+      ],
       order: { createdAt: 'DESC' },
     });
 
@@ -53,7 +137,14 @@ export class PostsService {
   async findOne(id: number, currentUserId?: number): Promise<PostResponseDto> {
     const post = await this.postsRepository.findOne({
       where: { id },
-      relations: ['author', 'comments', 'comments.author', 'likedBy'],
+      relations: [
+        'author',
+        'comments',
+        'comments.author',
+        'likedBy',
+        'swimmingRecord',
+        'trainingProgram',
+      ],
     });
 
     if (!post) {
@@ -65,7 +156,13 @@ export class PostsService {
 
   async findPopular(currentUserId?: number): Promise<PostResponseDto[]> {
     const posts = await this.postsRepository.find({
-      relations: ['author', 'comments', 'likedBy'],
+      relations: [
+        'author',
+        'comments',
+        'likedBy',
+        'swimmingRecord',
+        'trainingProgram',
+      ],
       order: { createdAt: 'DESC' },
       take: 10,
     });
@@ -88,7 +185,13 @@ export class PostsService {
   ): Promise<PostResponseDto[]> {
     const posts = await this.postsRepository.find({
       where: { category },
-      relations: ['author', 'comments', 'likedBy'],
+      relations: [
+        'author',
+        'comments',
+        'likedBy',
+        'swimmingRecord',
+        'trainingProgram',
+      ],
       order: { createdAt: 'DESC' },
     });
 
@@ -356,6 +459,26 @@ export class PostsService {
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
       isLiked,
+      swimmingRecord: post.swimmingRecord
+        ? {
+            id: post.swimmingRecord.id,
+            title: post.swimmingRecord.title,
+            totalDistance: post.swimmingRecord.totalDistance,
+            totalDuration: post.swimmingRecord.totalDuration,
+            poolLength: post.swimmingRecord.poolLength,
+            strokes: post.swimmingRecord.strokes || [],
+            calories: post.swimmingRecord.calories,
+          }
+        : undefined,
+      trainingProgram: post.trainingProgram
+        ? {
+            id: post.trainingProgram.id,
+            title: post.trainingProgram.title,
+            difficulty: post.trainingProgram.difficulty,
+            totalWeeks: post.trainingProgram.totalWeeks,
+            sessionsPerWeek: post.trainingProgram.sessionsPerWeek,
+          }
+        : undefined,
     };
   }
 }

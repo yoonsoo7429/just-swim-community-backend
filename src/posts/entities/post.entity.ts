@@ -12,6 +12,8 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Comment } from '../../comments/entities/comment.entity';
+import { SwimmingRecord } from '../../swimming/entities/swimming.entity';
+import { TrainingProgram } from '../../training/entities/training-program.entity';
 
 export enum PostCategory {
   기록공유 = '기록 공유',
@@ -57,6 +59,14 @@ export class Post {
 
   @Column('simple-array', { nullable: true })
   tags: string[];
+
+  @ManyToOne(() => SwimmingRecord, { nullable: true })
+  @JoinColumn({ name: 'swimmingRecordId' })
+  swimmingRecord: SwimmingRecord;
+
+  @ManyToOne(() => TrainingProgram, { nullable: true })
+  @JoinColumn({ name: 'trainingProgramId' })
+  trainingProgram: TrainingProgram;
 
   @CreateDateColumn()
   createdAt: Date;
