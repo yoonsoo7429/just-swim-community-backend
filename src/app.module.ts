@@ -3,12 +3,15 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { SwimmingModule } from './swimming/swimming.module';
-import { UsersModule } from './users/users.module';
-import { CommentsModule } from './comments/comments.module';
-import { TrainingModule } from './training/training.module';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { TrainingModule } from './training/training.module';
+import { TrainingProgressModule } from './training-progress/training-progress.module';
+import { TrainingReviewModule } from './training-review/training-review.module';
+import { CommunityRecruitmentModule } from './community-recruitment/community-recruitment.module';
+import { SwimmingModule } from './swimming/swimming.module';
 import { PostsModule } from './posts/posts.module';
+import { CommentsModule } from './comments/comments.module';
 import { CommunityModule } from './community/community.module';
 import { envValidationSchema } from './config/env.validation';
 
@@ -32,12 +35,15 @@ import { envValidationSchema } from './config/env.validation';
       }),
       inject: [ConfigService],
     }),
-    SwimmingModule,
-    UsersModule,
-    CommentsModule,
-    TrainingModule,
     AuthModule,
+    UsersModule,
+    TrainingModule,
+    TrainingProgressModule,
+    TrainingReviewModule,
+    CommunityRecruitmentModule,
+    SwimmingModule,
     PostsModule,
+    CommentsModule,
     CommunityModule,
   ],
   controllers: [AppController],

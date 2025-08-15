@@ -41,6 +41,32 @@ export class PostsController {
     );
   }
 
+  @Post('training-program')
+  @UseGuards(JwtAuthGuard)
+  createTrainingProgramPost(
+    @Body() data: { programId: string; additionalContent?: string },
+    @Request() req: any,
+  ) {
+    return this.postsService.createTrainingProgramPost(
+      data.programId,
+      req.user.id,
+      data.additionalContent || '훈련 프로그램을 공유합니다.',
+    );
+  }
+
+  @Post('training-series')
+  @UseGuards(JwtAuthGuard)
+  createTrainingSeriesPost(
+    @Body() data: { seriesId: string; additionalContent?: string },
+    @Request() req: any,
+  ) {
+    return this.postsService.createTrainingSeriesPost(
+      data.seriesId,
+      req.user.id,
+      data.additionalContent || '정기 모임에 참여하세요!',
+    );
+  }
+
   @Get('swimming-record/:recordId/status')
   @UseGuards(JwtAuthGuard)
   async getSwimmingRecordShareStatus(
@@ -56,10 +82,27 @@ export class PostsController {
     );
   }
 
+  @Get('training-program/:programId/status')
+  @UseGuards(JwtAuthGuard)
+  async getTrainingProgramShareStatus(
+    @Param('programId') programId: string,
+    @Request() req: any,
+  ) {
+    return this.postsService.getTrainingProgramShareStatus(
+      parseInt(programId),
+      req.user.id,
+    );
+  }
+
   @Post('update-titles')
   async updateExistingPostTitles() {
     await this.postsService.updateExistingPostTitles();
     return { message: '기존 게시물 제목이 업데이트되었습니다.' };
+  }
+
+  @Post('seed-sample-posts')
+  async seedSamplePosts() {
+    return this.postsService.seedSamplePosts();
   }
 
   @Get()

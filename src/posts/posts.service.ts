@@ -11,6 +11,8 @@ import { PostResponseDto } from './dto/post-response.dto';
 import { User } from '../users/entities/user.entity';
 import { CommentsService } from '../comments/comments.service';
 import { SwimmingRecord } from '../swimming/entities/swimming.entity';
+import { TrainingProgram } from '../training/entities/training-program.entity';
+import { TrainingSeries } from '../training/entities/training-series.entity';
 
 @Injectable()
 export class PostsService {
@@ -21,6 +23,10 @@ export class PostsService {
     private usersRepository: Repository<User>,
     @InjectRepository(SwimmingRecord)
     private swimmingRecordsRepository: Repository<SwimmingRecord>,
+    @InjectRepository(TrainingProgram)
+    private trainingProgramsRepository: Repository<TrainingProgram>,
+    @InjectRepository(TrainingSeries)
+    private trainingSeriesRepository: Repository<TrainingSeries>,
     private commentsService: CommentsService,
   ) {}
 
@@ -74,6 +80,105 @@ export class PostsService {
     return this.transformToResponseDto(savedPost);
   }
 
+  async createTrainingProgramPost(
+    programId: string,
+    userId: number,
+    additionalContent?: string,
+  ): Promise<PostResponseDto> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    // 훈련 프로그램 정보 가져오기
+    const trainingProgram = await this.trainingProgramsRepository.findOne({
+      where: { id: parseInt(programId) },
+      select: ['title', 'difficulty', 'totalWeeks', 'sessionsPerWeek'],
+    });
+
+    if (!trainingProgram) {
+      throw new NotFoundException('훈련 프로그램을 찾을 수 없습니다.');
+    }
+
+    const post = this.postsRepository.create({
+      title: trainingProgram.title,
+      content: additionalContent || '훈련 프로그램을 공유합니다.',
+      category: '훈련 후기',
+      author: { id: userId },
+      trainingProgram: { id: parseInt(programId) },
+    });
+
+    const savedPost = await this.postsRepository.save(post);
+    return this.transformToResponseDto(savedPost);
+  }
+
+  async createTrainingSeriesPost(
+    seriesId: string,
+    userId: number,
+    additionalContent?: string,
+  ): Promise<PostResponseDto> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    // 정기 모임 시리즈 정보 가져오기
+    const trainingSeries = await this.trainingSeriesRepository.findOne({
+      where: { id: parseInt(seriesId) },
+      select: [
+        'title',
+        'description',
+        'difficulty',
+        'type',
+        'repeatDays',
+        'repeatTime',
+        'defaultLocation',
+      ],
+    });
+
+    if (!trainingSeries) {
+      throw new NotFoundException('정기 모임 시리즈를 찾을 수 없습니다.');
+    }
+
+    // 시리즈 정보를 포함한 내용 생성
+    let content = additionalContent || '';
+    if (trainingSeries.type === 'recurring') {
+      const repeatDays = trainingSeries.repeatDays
+        ?.map((day) => {
+          const dayMap: { [key: string]: string } = {
+            monday: '월요일',
+            tuesday: '화요일',
+            wednesday: '수요일',
+            thursday: '목요일',
+            friday: '금요일',
+            saturday: '토요일',
+            sunday: '일요일',
+          };
+          return dayMap[day] || day;
+        })
+        .join(', ');
+
+      content += `\n\n📅 정기 모임 정보:\n`;
+      content += `• 반복 요일: ${repeatDays || '설정 없음'}\n`;
+      content += `• 시작 시간: ${trainingSeries.repeatTime || '설정 없음'}\n`;
+      content += `• 장소: ${trainingSeries.defaultLocation || '설정 없음'}\n`;
+      content += `• 난이도: ${trainingSeries.difficulty}\n`;
+    } else {
+      content += `\n\n📅 일회성 모임입니다.`;
+    }
+
+    const post = this.postsRepository.create({
+      title: `[정기 모임] ${trainingSeries.title}`,
+      content: content || '정기 모임에 참여하세요!',
+      category: '훈련 후기',
+      author: { id: userId },
+      trainingSeries: { id: parseInt(seriesId) },
+    });
+
+    const savedPost = await this.postsRepository.save(post);
+    return this.transformToResponseDto(savedPost);
+  }
+
   async getSwimmingRecordShareStatus(
     recordId: number,
     userId: number,
@@ -101,6 +206,26 @@ export class PostsService {
     return result;
   }
 
+  async getTrainingProgramShareStatus(
+    programId: number,
+    userId: number,
+  ): Promise<{ isShared: boolean; postId?: number }> {
+    // 해당 훈련 프로그램이 현재 사용자에 의해 커뮤니티에 공유되었는지 확인
+    const sharedPost = await this.postsRepository.findOne({
+      where: {
+        trainingProgram: { id: programId },
+        author: { id: userId },
+        category: '훈련 후기',
+      },
+      select: ['id'],
+    });
+
+    return {
+      isShared: !!sharedPost,
+      postId: sharedPost?.id,
+    };
+  }
+
   // 기존 게시물들의 제목을 실제 수영 기록 제목으로 업데이트
   async updateExistingPostTitles(): Promise<void> {
     const posts = await this.postsRepository.find({
@@ -115,6 +240,62 @@ export class PostsService {
         });
       }
     }
+  }
+
+  async seedSamplePosts(): Promise<{ message: string; count: number }> {
+    const samplePosts = [
+      {
+        title: '자유형 100m 기록 단축 팁',
+        content:
+          '자유형 100m를 더 빠르게 수영하는 방법을 공유합니다. 호흡 타이밍과 팔 동작을 개선하면 상당한 시간 단축이 가능합니다.',
+        category: '팁 공유',
+        author: { id: 1 }, // 기본 사용자 ID
+      },
+      {
+        title: '첫 수영 대회 참가 후기',
+        content:
+          '처음으로 수영 대회에 참가했습니다. 긴장했지만 좋은 경험이었고, 다음에는 더 좋은 기록을 세우고 싶습니다.',
+        category: '훈련 후기',
+        author: { id: 1 },
+      },
+      {
+        title: '수영 초보자를 위한 가이드',
+        content:
+          '수영을 처음 시작하는 분들을 위한 기본적인 팁과 주의사항을 정리했습니다. 물에 대한 두려움을 극복하는 방법도 포함되어 있습니다.',
+        category: '가이드',
+        author: { id: 1 },
+      },
+      {
+        title: '월간 수영 챌린지 참여',
+        content:
+          '이번 달에 20km 수영 챌린지에 참여하고 있습니다. 함께 도전해보시는 건 어떨까요?',
+        category: '챌린지',
+        author: { id: 1 },
+      },
+      {
+        title: '수영장 선택 가이드',
+        content:
+          '서울 지역 수영장들을 비교 분석했습니다. 가격, 시설, 접근성 등을 고려한 추천 리스트입니다.',
+        category: '가이드',
+        author: { id: 1 },
+      },
+    ];
+
+    let createdCount = 0;
+    for (const postData of samplePosts) {
+      try {
+        const post = this.postsRepository.create(postData);
+        await this.postsRepository.save(post);
+        createdCount++;
+      } catch (error) {
+        console.error('샘플 게시물 생성 실패:', error);
+      }
+    }
+
+    return {
+      message: `${createdCount}개의 샘플 게시물이 생성되었습니다.`,
+      count: createdCount,
+    };
   }
 
   async findAll(currentUserId?: number): Promise<PostResponseDto[]> {

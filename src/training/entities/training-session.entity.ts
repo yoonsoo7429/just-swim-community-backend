@@ -1,6 +1,7 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { TrainingProgram } from './training-program.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Entity('training_sessions')
 export class TrainingSession extends BaseEntity {
@@ -10,11 +11,14 @@ export class TrainingSession extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', nullable: true })
   weekNumber: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', nullable: true })
   sessionNumber: number;
+
+  @Column({ type: 'int', nullable: true })
+  order: number;
 
   @Column({ type: 'int' })
   totalDistance: number;
@@ -29,6 +33,7 @@ export class TrainingSession extends BaseEntity {
   @JoinColumn({ name: 'trainingProgramId' })
   trainingProgram: TrainingProgram;
 
-  @Column()
-  trainingProgramId: number;
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user: User;
 }
