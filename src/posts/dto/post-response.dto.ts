@@ -20,6 +20,7 @@ export class PostResponseDto {
     totalDistance: number;
     totalDuration: number;
     poolLength: number;
+    poolName?: string;
     strokes: Array<{ style: string; distance: number }>;
     calories?: number;
   };

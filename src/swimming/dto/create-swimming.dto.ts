@@ -29,7 +29,11 @@ export class CreateSwimmingDto {
   description?: string;
 
   @IsNumber()
-  poolLength: 25 | 50;
+  poolLength: number;
+
+  @IsOptional()
+  @IsString()
+  poolName?: string;
 
   @IsString()
   sessionStartTime: string;

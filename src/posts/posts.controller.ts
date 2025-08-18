@@ -73,9 +73,6 @@ export class PostsController {
     @Param('recordId') recordId: string,
     @Request() req: any,
   ) {
-    console.log('req.user:', req.user);
-    console.log('req.user.id:', req.user?.id);
-
     return this.postsService.getSwimmingRecordShareStatus(
       parseInt(recordId),
       req.user.id,

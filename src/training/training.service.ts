@@ -114,18 +114,10 @@ export class TrainingService {
         throw new ForbiddenException('Program is full');
       }
     }
-
-    // 이미 참여 중인지 확인 (실제로는 참여 테이블에서 확인해야 함)
-    // 현재는 간단하게 구현
-    console.log(`User ${userId} joined program ${programId}`);
   }
 
   async leaveProgram(programId: number, userId: number): Promise<void> {
-    const program = await this.findProgramById(programId);
-
-    // 참여 중인지 확인 (실제로는 참여 테이블에서 확인해야 함)
-    // 현재는 간단하게 구현
-    console.log(`User ${userId} left program ${programId}`);
+    await this.findProgramById(programId);
   }
 
   async findProgramParticipants(programId: number): Promise<any[]> {

@@ -61,7 +61,15 @@ export class PostsService {
     // 수영 기록 정보 가져오기
     const swimmingRecord = await this.swimmingRecordsRepository.findOne({
       where: { id: parseInt(recordId) },
-      select: ['title'],
+      select: [
+        'title',
+        'totalDistance',
+        'totalDuration',
+        'poolLength',
+        'poolName',
+        'strokes',
+        'calories',
+      ],
     });
 
     if (!swimmingRecord) {
@@ -183,8 +191,6 @@ export class PostsService {
     recordId: number,
     userId: number,
   ): Promise<{ isShared: boolean; postId?: number }> {
-    console.log(`공유 상태 확인 요청: recordId=${recordId}, userId=${userId}`);
-
     // 해당 수영 기록이 현재 사용자에 의해 커뮤니티에 공유되었는지 확인
     const sharedPost = await this.postsRepository.findOne({
       where: {
@@ -195,14 +201,11 @@ export class PostsService {
       select: ['id'],
     });
 
-    console.log(`찾은 공유 게시물:`, sharedPost);
-
     const result = {
       isShared: !!sharedPost,
       postId: sharedPost?.id,
     };
 
-    console.log(`반환할 결과:`, result);
     return result;
   }
 
@@ -647,6 +650,7 @@ export class PostsService {
             totalDistance: post.swimmingRecord.totalDistance,
             totalDuration: post.swimmingRecord.totalDuration,
             poolLength: post.swimmingRecord.poolLength,
+            poolName: post.swimmingRecord.poolName,
             strokes: post.swimmingRecord.strokes || [],
             calories: post.swimmingRecord.calories,
           }

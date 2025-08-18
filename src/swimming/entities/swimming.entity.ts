@@ -18,7 +18,10 @@ export class SwimmingRecord extends BaseEntity {
   description: string;
 
   @Column({ type: 'int' })
-  poolLength: 25 | 50; // 수영장 길이 (25m 또는 50m)
+  poolLength: number; // 수영장 길이 (미터)
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  poolName: string; // 수영장 이름 (예: "올림픽공원 수영장", "잠실 실내수영장")
 
   @Column({ type: 'varchar', length: 10 })
   sessionStartTime: string; // HH:MM 형식
