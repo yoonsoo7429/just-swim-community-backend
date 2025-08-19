@@ -56,7 +56,7 @@ export class SwimmingService {
   async findByUser(userId: number): Promise<SwimmingRecord[]> {
     return await this.swimmingRepository.find({
       where: { user: { id: userId } },
-      relations: ['user'],
+      relations: ['user', 'posts'],
       order: { createdAt: 'DESC' },
     });
   }

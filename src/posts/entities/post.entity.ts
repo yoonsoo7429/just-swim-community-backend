@@ -15,6 +15,7 @@ import { Comment } from '../../comments/entities/comment.entity';
 import { SwimmingRecord } from '../../swimming/entities/swimming.entity';
 import { TrainingProgram } from '../../training/entities/training-program.entity';
 import { TrainingSeries } from '../../training/entities/training-series.entity';
+import { BaseEntity } from 'src/common/entities/base.entity';
 
 export enum PostCategory {
   기록공유 = '기록 공유',
@@ -26,10 +27,7 @@ export enum PostCategory {
 }
 
 @Entity()
-export class Post {
-  @PrimaryGeneratedColumn()
-  id: number;
-
+export class Post extends BaseEntity {
   @Column()
   title: string;
 
@@ -72,10 +70,4 @@ export class Post {
   @ManyToOne(() => TrainingSeries, { nullable: true })
   @JoinColumn({ name: 'trainingSeriesId' })
   trainingSeries: TrainingSeries;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 }

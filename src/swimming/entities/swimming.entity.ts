@@ -3,6 +3,7 @@ import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
 import { SwimmingComment } from './swimming-comment.entity';
 import { SwimmingLike } from './swimming-like.entity';
+import { Post } from 'src/posts/entities/post.entity';
 
 interface StrokeRecord {
   style: string;
@@ -50,6 +51,11 @@ export class SwimmingRecord extends BaseEntity {
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })
   user: User;
+
+  @OneToMany(() => Post, (post) => post.swimmingRecord, {
+    cascade: true,
+  })
+  posts: Post[];
 
   @OneToMany(() => SwimmingComment, (comment) => comment.swimmingRecord, {
     cascade: true,
