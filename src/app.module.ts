@@ -8,11 +8,10 @@ import { UsersModule } from './users/users.module';
 import { TrainingModule } from './training/training.module';
 import { TrainingProgressModule } from './training-progress/training-progress.module';
 import { TrainingReviewModule } from './training-review/training-review.module';
-import { CommunityRecruitmentModule } from './community-recruitment/community-recruitment.module';
+
 import { SwimmingModule } from './swimming/swimming.module';
 import { PostsModule } from './posts/posts.module';
 import { CommentsModule } from './comments/comments.module';
-import { CommunityModule } from './community/community.module';
 import { envValidationSchema } from './config/env.validation';
 
 @Module({
@@ -40,11 +39,10 @@ import { envValidationSchema } from './config/env.validation';
     TrainingModule,
     TrainingProgressModule,
     TrainingReviewModule,
-    CommunityRecruitmentModule,
+
     SwimmingModule,
     PostsModule,
     CommentsModule,
-    CommunityModule,
   ],
   controllers: [AppController],
   providers: [AppService],

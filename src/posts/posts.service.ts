@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Not, IsNull, In } from 'typeorm';
+import { Repository, Not, IsNull, In, MoreThanOrEqual } from 'typeorm';
 import { Post } from './entities/post.entity';
 import { CreatePostDto, UpdatePostDto } from './dto';
 import { PostResponseDto } from './dto/post-response.dto';
@@ -12,7 +12,6 @@ import { User } from '../users/entities/user.entity';
 import { CommentsService } from '../comments/comments.service';
 import { SwimmingRecord } from '../swimming/entities/swimming.entity';
 import { TrainingProgram } from '../training/entities/training-program.entity';
-import { TrainingSeries } from '../training/entities/training-series.entity';
 
 @Injectable()
 export class PostsService {
@@ -25,8 +24,7 @@ export class PostsService {
     private swimmingRecordsRepository: Repository<SwimmingRecord>,
     @InjectRepository(TrainingProgram)
     private trainingProgramsRepository: Repository<TrainingProgram>,
-    @InjectRepository(TrainingSeries)
-    private trainingSeriesRepository: Repository<TrainingSeries>,
+
     private commentsService: CommentsService,
   ) {}
 
@@ -101,7 +99,7 @@ export class PostsService {
     // 훈련 프로그램 정보 가져오기
     const trainingProgram = await this.trainingProgramsRepository.findOne({
       where: { id: parseInt(programId) },
-      select: ['title', 'difficulty', 'totalWeeks', 'sessionsPerWeek'],
+      select: ['title', 'difficulty'],
     });
 
     if (!trainingProgram) {
@@ -114,73 +112,6 @@ export class PostsService {
       category: '훈련 후기',
       author: { id: userId },
       trainingProgram: { id: parseInt(programId) },
-    });
-
-    const savedPost = await this.postsRepository.save(post);
-    return this.transformToResponseDto(savedPost);
-  }
-
-  async createTrainingSeriesPost(
-    seriesId: string,
-    userId: number,
-    additionalContent?: string,
-  ): Promise<PostResponseDto> {
-    const user = await this.usersRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException('사용자를 찾을 수 없습니다.');
-    }
-
-    // 정기 모임 시리즈 정보 가져오기
-    const trainingSeries = await this.trainingSeriesRepository.findOne({
-      where: { id: parseInt(seriesId) },
-      select: [
-        'title',
-        'description',
-        'difficulty',
-        'type',
-        'repeatDays',
-        'repeatTime',
-        'defaultLocation',
-      ],
-    });
-
-    if (!trainingSeries) {
-      throw new NotFoundException('정기 모임 시리즈를 찾을 수 없습니다.');
-    }
-
-    // 시리즈 정보를 포함한 내용 생성
-    let content = additionalContent || '';
-    if (trainingSeries.type === 'recurring') {
-      const repeatDays = trainingSeries.repeatDays
-        ?.map((day) => {
-          const dayMap: { [key: string]: string } = {
-            monday: '월요일',
-            tuesday: '화요일',
-            wednesday: '수요일',
-            thursday: '목요일',
-            friday: '금요일',
-            saturday: '토요일',
-            sunday: '일요일',
-          };
-          return dayMap[day] || day;
-        })
-        .join(', ');
-
-      content += `\n\n📅 정기 모임 정보:\n`;
-      content += `• 반복 요일: ${repeatDays || '설정 없음'}\n`;
-      content += `• 시작 시간: ${trainingSeries.repeatTime || '설정 없음'}\n`;
-      content += `• 장소: ${trainingSeries.defaultLocation || '설정 없음'}\n`;
-      content += `• 난이도: ${trainingSeries.difficulty}\n`;
-    } else {
-      content += `\n\n📅 일회성 모임입니다.`;
-    }
-
-    const post = this.postsRepository.create({
-      title: `[정기 모임] ${trainingSeries.title}`,
-      content: content || '정기 모임에 참여하세요!',
-      category: '훈련 후기',
-      author: { id: userId },
-      trainingSeries: { id: parseInt(seriesId) },
     });
 
     const savedPost = await this.postsRepository.save(post);
@@ -246,41 +177,51 @@ export class PostsService {
   }
 
   async seedSamplePosts(): Promise<{ message: string; count: number }> {
+    // 실제 사용자가 있는지 확인
+    const existingUser = await this.usersRepository.findOne({
+      where: { id: 1 },
+    });
+    if (!existingUser) {
+      throw new NotFoundException(
+        '샘플 게시물을 생성할 사용자가 없습니다. 먼저 사용자를 생성해주세요.',
+      );
+    }
+
     const samplePosts = [
       {
         title: '자유형 100m 기록 단축 팁',
         content:
           '자유형 100m를 더 빠르게 수영하는 방법을 공유합니다. 호흡 타이밍과 팔 동작을 개선하면 상당한 시간 단축이 가능합니다.',
         category: '팁 공유',
-        author: { id: 1 }, // 기본 사용자 ID
+        author: { id: existingUser.id },
       },
       {
         title: '첫 수영 대회 참가 후기',
         content:
           '처음으로 수영 대회에 참가했습니다. 긴장했지만 좋은 경험이었고, 다음에는 더 좋은 기록을 세우고 싶습니다.',
         category: '훈련 후기',
-        author: { id: 1 },
+        author: { id: existingUser.id },
       },
       {
         title: '수영 초보자를 위한 가이드',
         content:
           '수영을 처음 시작하는 분들을 위한 기본적인 팁과 주의사항을 정리했습니다. 물에 대한 두려움을 극복하는 방법도 포함되어 있습니다.',
         category: '가이드',
-        author: { id: 1 },
+        author: { id: existingUser.id },
       },
       {
         title: '월간 수영 챌린지 참여',
         content:
           '이번 달에 20km 수영 챌린지에 참여하고 있습니다. 함께 도전해보시는 건 어떨까요?',
         category: '챌린지',
-        author: { id: 1 },
+        author: { id: existingUser.id },
       },
       {
         title: '수영장 선택 가이드',
         content:
           '서울 지역 수영장들을 비교 분석했습니다. 가격, 시설, 접근성 등을 고려한 추천 리스트입니다.',
         category: '가이드',
-        author: { id: 1 },
+        author: { id: existingUser.id },
       },
     ];
 
@@ -475,7 +416,7 @@ export class PostsService {
 
     const posts = await this.postsRepository.find({
       where: {
-        createdAt: sevenDaysAgo,
+        createdAt: MoreThanOrEqual(sevenDaysAgo),
       },
       relations: ['author', 'comments', 'likedBy'],
       order: { createdAt: 'DESC' },
@@ -504,10 +445,9 @@ export class PostsService {
       .leftJoinAndSelect('post.author', 'author')
       .leftJoinAndSelect('post.comments', 'comments')
       .leftJoinAndSelect('post.likedBy', 'likedBy')
-      .where(
-        '(post.title LIKE :query OR post.content LIKE :query OR post.tags LIKE :query)',
-        { query: `%${query}%` },
-      );
+      .where('(post.title LIKE :query OR post.content LIKE :query)', {
+        query: `%${query}%`,
+      });
 
     if (category && category !== '전체') {
       queryBuilder.andWhere('post.category = :category', { category });
@@ -623,6 +563,138 @@ export class PostsService {
     return popularityScore * timeWeight;
   }
 
+  // 훈련 모집 관련 메서드들
+  async createTrainingRecruitmentPost(
+    recruitmentData: {
+      title: string;
+      content: string;
+      trainingProgramId?: number;
+      recruitmentType: 'regular' | 'one-time';
+      meetingDays?: string[];
+      meetingTime?: string;
+      meetingDateTime?: Date;
+      location: string;
+      maxParticipants: number;
+    },
+    userId: number,
+  ): Promise<PostResponseDto> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    const post = this.postsRepository.create({
+      title: recruitmentData.title,
+      content: recruitmentData.content,
+      category: '훈련 모집',
+      author: { id: userId },
+      trainingProgram: recruitmentData.trainingProgramId
+        ? { id: recruitmentData.trainingProgramId }
+        : undefined,
+      recruitmentType: recruitmentData.recruitmentType,
+      meetingDays: recruitmentData.meetingDays || [],
+      meetingTime: recruitmentData.meetingTime || '',
+      meetingDateTime: recruitmentData.meetingDateTime || undefined,
+      location: recruitmentData.location,
+      maxParticipants: recruitmentData.maxParticipants || 8,
+      currentParticipants: 0,
+      recruitmentStatus: 'open',
+    } as Partial<Post>);
+
+    const savedPost = await this.postsRepository.save(post);
+    return this.transformToResponseDto(savedPost);
+  }
+
+  async joinTrainingRecruitment(postId: number, userId: number): Promise<void> {
+    const post = await this.postsRepository.findOne({
+      where: { id: postId, category: '훈련 모집' },
+      relations: ['likedBy'],
+    });
+
+    if (!post) {
+      throw new NotFoundException('훈련 모집 글을 찾을 수 없습니다.');
+    }
+
+    if (post.recruitmentStatus === 'full') {
+      throw new ForbiddenException('이미 모집이 완료되었습니다.');
+    }
+
+    if ((post.currentParticipants || 0) >= (post.maxParticipants || 0)) {
+      throw new ForbiddenException('모집 인원이 가득 찼습니다.');
+    }
+
+    // 이미 참여 중인지 확인
+    const isAlreadyParticipating = post.likedBy?.some(
+      (user) => user.id === userId,
+    );
+    if (isAlreadyParticipating) {
+      throw new ForbiddenException('이미 참여 중입니다.');
+    }
+
+    // 사용자 정보 가져오기
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    // 참여자 추가 (좋아요로 참여 표시)
+    post.likedBy = post.likedBy || [];
+    post.likedBy.push(user);
+
+    // 참여자 수 증가 (안전한 처리)
+    post.currentParticipants = (post.currentParticipants || 0) + 1;
+    if (post.currentParticipants >= (post.maxParticipants || 0)) {
+      post.recruitmentStatus = 'full';
+    }
+
+    await this.postsRepository.save(post);
+  }
+
+  async leaveTrainingRecruitment(
+    postId: number,
+    userId: number,
+  ): Promise<void> {
+    const post = await this.postsRepository.findOne({
+      where: { id: postId, category: '훈련 모집' },
+      relations: ['likedBy'],
+    });
+
+    if (!post) {
+      throw new NotFoundException('훈련 모집 글을 찾을 수 없습니다.');
+    }
+
+    // 참여 중인지 확인
+    const isParticipating = post.likedBy?.some((user) => user.id === userId);
+    if (!isParticipating) {
+      throw new ForbiddenException('참여 중이 아닙니다.');
+    }
+
+    // 참여자 제거
+    post.likedBy = post.likedBy.filter((user) => user.id !== userId);
+
+    // 참여자 수 감소 (안전한 처리)
+    post.currentParticipants = Math.max(0, (post.currentParticipants || 0) - 1);
+    if (post.recruitmentStatus === 'full') {
+      post.recruitmentStatus = 'open';
+    }
+
+    await this.postsRepository.save(post);
+  }
+
+  async findTrainingRecruitmentPosts(
+    currentUserId?: number,
+  ): Promise<PostResponseDto[]> {
+    const posts = await this.postsRepository.find({
+      where: { category: '훈련 모집' },
+      relations: ['author', 'comments', 'likedBy', 'trainingProgram'],
+      order: { createdAt: 'DESC' },
+    });
+
+    return posts.map((post) =>
+      this.transformToResponseDto(post, currentUserId),
+    );
+  }
+
   private transformToResponseDto(
     post: Post,
     currentUserId?: number,
@@ -660,10 +732,25 @@ export class PostsService {
             id: post.trainingProgram.id,
             title: post.trainingProgram.title,
             difficulty: post.trainingProgram.difficulty,
-            totalWeeks: post.trainingProgram.totalWeeks,
-            sessionsPerWeek: post.trainingProgram.sessionsPerWeek,
+            description: post.trainingProgram.description,
+            visibility: post.trainingProgram.visibility,
+            isPublished: post.trainingProgram.isPublished,
           }
         : undefined,
+      // 훈련 모집 관련 정보 추가
+      recruitmentInfo:
+        post.category === '훈련 모집'
+          ? {
+              type: post.recruitmentType || 'regular',
+              meetingDays: post.meetingDays || [],
+              meetingTime: post.meetingTime || '',
+              meetingDateTime: post.meetingDateTime || undefined,
+              location: post.location || '',
+              maxParticipants: post.maxParticipants || 0,
+              currentParticipants: post.currentParticipants || 0,
+              status: post.recruitmentStatus || 'open',
+            }
+          : undefined,
     };
   }
 }

@@ -6,15 +6,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TrainingProgramProgress } from './entities/training-program-progress.entity';
-import { TrainingSessionCompletion } from './entities/training-session-completion.entity';
 
 @Injectable()
 export class TrainingProgressService {
   constructor(
     @InjectRepository(TrainingProgramProgress)
     private trainingProgramProgressRepository: Repository<TrainingProgramProgress>,
-    @InjectRepository(TrainingSessionCompletion)
-    private trainingSessionCompletionRepository: Repository<TrainingSessionCompletion>,
   ) {}
 
   // Program Progress Methods
@@ -45,42 +42,6 @@ export class TrainingProgressService {
     return await this.trainingProgramProgressRepository.save(progress);
   }
 
-  async completeSession(
-    sessionId: number,
-    userId: number,
-    programId: number,
-    completionData: any,
-  ): Promise<TrainingSessionCompletion> {
-    // 이미 완료한 세션인지 확인
-    const existingCompletion =
-      await this.trainingSessionCompletionRepository.findOne({
-        where: { session: { id: sessionId }, user: { id: userId } },
-      });
-
-    if (existingCompletion) {
-      throw new ForbiddenException('Session already completed');
-    }
-
-    // 세션 완료 생성
-    const completion = this.trainingSessionCompletionRepository.create({
-      session: { id: sessionId },
-      user: { id: userId },
-      completedDate: new Date(),
-      status: completionData.status || 'completed',
-      actualDuration: completionData.actualDuration,
-      difficultyRating: completionData.difficultyRating,
-      notes: completionData.notes,
-      performanceMetrics: completionData.performanceMetrics,
-    });
-
-    await this.trainingSessionCompletionRepository.save(completion);
-
-    // 프로그램 진행률 업데이트
-    await this.updateProgramProgress(programId, userId);
-
-    return completion;
-  }
-
   async updateProgramProgress(
     programId: number,
     userId: number,
@@ -93,15 +54,9 @@ export class TrainingProgressService {
       throw new NotFoundException('Program progress not found');
     }
 
-    // 완료된 세션 수 계산
-    const completedSessions =
-      await this.trainingSessionCompletionRepository.count({
-        where: {
-          user: { id: userId },
-          session: { trainingProgram: { id: programId } },
-          status: 'completed',
-        },
-      });
+    // 현재는 세션 완료 기능이 구현되지 않음
+    // 향후 세션 관리 시스템 구현 시 추가 예정
+    const completedSessions = 0;
 
     // 진행률 계산
     const progressPercentage =
@@ -151,46 +106,5 @@ export class TrainingProgressService {
       relations: ['program'],
       order: { updatedAt: 'DESC' },
     });
-  }
-
-  async getSessionCompletion(
-    sessionId: number,
-    userId: number,
-  ): Promise<TrainingSessionCompletion | null> {
-    return await this.trainingSessionCompletionRepository.findOne({
-      where: { session: { id: sessionId }, user: { id: userId } },
-    });
-  }
-
-  async updateSessionCompletion(
-    sessionId: number,
-    userId: number,
-    updateData: any,
-  ): Promise<TrainingSessionCompletion> {
-    const completion = await this.trainingSessionCompletionRepository.findOne({
-      where: { session: { id: sessionId }, user: { id: userId } },
-    });
-
-    if (!completion) {
-      throw new NotFoundException('Session completion not found');
-    }
-
-    Object.assign(completion, updateData);
-    return await this.trainingSessionCompletionRepository.save(completion);
-  }
-
-  async deleteSessionCompletion(
-    sessionId: number,
-    userId: number,
-  ): Promise<void> {
-    const completion = await this.trainingSessionCompletionRepository.findOne({
-      where: { session: { id: sessionId }, user: { id: userId } },
-    });
-
-    if (!completion) {
-      throw new NotFoundException('Session completion not found');
-    }
-
-    await this.trainingSessionCompletionRepository.remove(completion);
   }
 }

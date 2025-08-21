@@ -6,18 +6,11 @@ import { Post } from './entities/post.entity';
 import { User } from '../users/entities/user.entity';
 import { SwimmingRecord } from '../swimming/entities/swimming.entity';
 import { TrainingProgram } from '../training/entities/training-program.entity';
-import { TrainingSeries } from '../training/entities/training-series.entity';
 import { CommentsModule } from '../comments/comments.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      Post,
-      User,
-      SwimmingRecord,
-      TrainingProgram,
-      TrainingSeries,
-    ]),
+    TypeOrmModule.forFeature([Post, User, SwimmingRecord, TrainingProgram]),
     CommentsModule,
   ],
   controllers: [PostsController],

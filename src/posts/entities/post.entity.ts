@@ -14,7 +14,6 @@ import { User } from '../../users/entities/user.entity';
 import { Comment } from '../../comments/entities/comment.entity';
 import { SwimmingRecord } from '../../swimming/entities/swimming.entity';
 import { TrainingProgram } from '../../training/entities/training-program.entity';
-import { TrainingSeries } from '../../training/entities/training-series.entity';
 import { BaseEntity } from 'src/common/entities/base.entity';
 
 export enum PostCategory {
@@ -22,6 +21,7 @@ export enum PostCategory {
   팁공유 = '팁 공유',
   질문 = '질문',
   훈련후기 = '훈련 후기',
+  훈련모집 = '훈련 모집',
   챌린지 = '챌린지',
   가이드 = '가이드',
 }
@@ -36,7 +36,15 @@ export class Post extends BaseEntity {
 
   @Column({
     type: 'enum',
-    enum: ['기록 공유', '팁 공유', '질문', '훈련 후기', '챌린지', '가이드'],
+    enum: [
+      '기록 공유',
+      '팁 공유',
+      '질문',
+      '훈련 후기',
+      '훈련 모집',
+      '챌린지',
+      '가이드',
+    ],
     default: '기록 공유',
   })
   category: string;
@@ -67,7 +75,30 @@ export class Post extends BaseEntity {
   @JoinColumn({ name: 'trainingProgramId' })
   trainingProgram: TrainingProgram;
 
-  @ManyToOne(() => TrainingSeries, { nullable: true })
-  @JoinColumn({ name: 'trainingSeriesId' })
-  trainingSeries: TrainingSeries;
+  // 훈련 모집 관련 필드들 (category가 '훈련 모집'일 때만 사용)
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  recruitmentType?: string; // 'regular' | 'one-time'
+
+  // 정기 모임일 때
+  @Column({ type: 'simple-array', nullable: true })
+  meetingDays?: string[]; // ['monday', 'wednesday', 'friday']
+
+  @Column({ type: 'time', nullable: true })
+  meetingTime?: string; // "19:00"
+
+  // 단기 모임일 때
+  @Column({ type: 'timestamp', nullable: true })
+  meetingDateTime?: Date;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  location?: string;
+
+  @Column({ type: 'int', nullable: true })
+  maxParticipants?: number;
+
+  @Column({ type: 'int', default: 0 })
+  currentParticipants?: number;
+
+  @Column({ type: 'varchar', length: 20, default: 'open' })
+  recruitmentStatus?: string; // 'open' | 'full' | 'closed'
 }

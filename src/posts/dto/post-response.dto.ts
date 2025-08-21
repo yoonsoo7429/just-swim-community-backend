@@ -30,7 +30,20 @@ export class PostResponseDto {
     id: number;
     title: string;
     difficulty: string;
-    totalWeeks: number;
-    sessionsPerWeek: number;
+    description?: string;
+    visibility?: string;
+    isPublished?: boolean;
+  };
+
+  // 훈련 모집 관련 정보 (category가 '훈련 모집'일 때만)
+  recruitmentInfo?: {
+    type?: string;
+    meetingDays?: string[];
+    meetingTime?: string;
+    meetingDateTime?: Date;
+    location?: string;
+    maxParticipants?: number;
+    currentParticipants?: number;
+    status?: string;
   };
 }

@@ -24,7 +24,7 @@ export class PostsController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  create(@Body() createPostDto: CreatePostDto, @Request() req) {
+  create(@Body() createPostDto: CreatePostDto, @Request() req: any) {
     return this.postsService.create(createPostDto, req.user.id);
   }
 
@@ -51,19 +51,6 @@ export class PostsController {
       data.programId,
       req.user.id,
       data.additionalContent || '훈련 프로그램을 공유합니다.',
-    );
-  }
-
-  @Post('training-series')
-  @UseGuards(JwtAuthGuard)
-  createTrainingSeriesPost(
-    @Body() data: { seriesId: string; additionalContent?: string },
-    @Request() req: any,
-  ) {
-    return this.postsService.createTrainingSeriesPost(
-      data.seriesId,
-      req.user.id,
-      data.additionalContent || '정기 모임에 참여하세요!',
     );
   }
 
@@ -134,20 +121,20 @@ export class PostsController {
   update(
     @Param('id') id: string,
     @Body() updatePostDto: UpdatePostDto,
-    @Request() req,
+    @Request() req: any,
   ) {
     return this.postsService.update(+id, updatePostDto, req.user.id);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
-  remove(@Param('id') id: string, @Request() req) {
+  remove(@Param('id') id: string, @Request() req: any) {
     return this.postsService.remove(+id, req.user.id);
   }
 
   @Post(':id/like')
   @UseGuards(JwtAuthGuard)
-  likePost(@Param('id') id: string, @Request() req) {
+  likePost(@Param('id') id: string, @Request() req: any) {
     return this.postsService.likePost(+id, req.user.id);
   }
 
@@ -169,5 +156,47 @@ export class PostsController {
       postId: +id,
       authorId: req.user.id,
     });
+  }
+
+  // 훈련 모집 관련 엔드포인트들
+  @Post('training-recruitment')
+  @UseGuards(JwtAuthGuard)
+  createTrainingRecruitmentPost(
+    @Body()
+    recruitmentData: {
+      title: string;
+      content: string;
+      trainingProgramId?: number;
+      recruitmentType: 'regular' | 'one-time';
+      meetingDays?: string[];
+      meetingTime?: string;
+      meetingDateTime?: Date;
+      location: string;
+      maxParticipants: number;
+    },
+    @Request() req: any,
+  ) {
+    return this.postsService.createTrainingRecruitmentPost(
+      recruitmentData,
+      req.user.id,
+    );
+  }
+
+  @Get('training-recruitment')
+  findTrainingRecruitmentPosts(@Request() req?: any) {
+    const currentUserId = req?.user?.id;
+    return this.postsService.findTrainingRecruitmentPosts(currentUserId);
+  }
+
+  @Post(':id/join-training')
+  @UseGuards(JwtAuthGuard)
+  joinTrainingRecruitment(@Param('id') id: string, @Request() req: any) {
+    return this.postsService.joinTrainingRecruitment(+id, req.user.id);
+  }
+
+  @Delete(':id/leave-training')
+  @UseGuards(JwtAuthGuard)
+  leaveTrainingRecruitment(@Param('id') id: string, @Request() req: any) {
+    return this.postsService.leaveTrainingRecruitment(+id, req.user.id);
   }
 }
