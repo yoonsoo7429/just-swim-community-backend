@@ -62,7 +62,15 @@ export class Post extends BaseEntity {
     joinColumn: { name: 'postId', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'userId', referencedColumnName: 'id' },
   })
-  likedBy: User[];
+  likedBy: User[]; // 좋아요한 사용자들
+
+  @ManyToMany(() => User)
+  @JoinTable({
+    name: 'post_participants',
+    joinColumn: { name: 'postId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'userId', referencedColumnName: 'id' },
+  })
+  participants: User[];
 
   @Column('simple-array', { nullable: true })
   tags: string[];

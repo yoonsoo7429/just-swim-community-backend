@@ -12,6 +12,9 @@ export class PostResponseDto {
   createdAt: Date;
   updatedAt: Date;
   isLiked?: boolean;
+  isParticipating?: boolean; // 훈련 참여 상태 추가
+  likedBy?: User[]; // 좋아요한 사용자들
+  participants?: User[]; // 훈련 참여자들
 
   // 연동된 수영 기록 정보
   swimmingRecord?: {

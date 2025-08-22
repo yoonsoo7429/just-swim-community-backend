@@ -248,6 +248,7 @@ export class PostsService {
         'author',
         'comments',
         'likedBy',
+        'participants', // participants 관계 추가
         'swimmingRecord',
         'trainingProgram',
       ],
@@ -267,6 +268,7 @@ export class PostsService {
         'comments',
         'comments.author',
         'likedBy',
+        'participants', // participants 관계 추가
         'swimmingRecord',
         'trainingProgram',
       ],
@@ -285,6 +287,7 @@ export class PostsService {
         'author',
         'comments',
         'likedBy',
+        'participants', // participants 관계 추가
         'swimmingRecord',
         'trainingProgram',
       ],
@@ -314,6 +317,7 @@ export class PostsService {
         'author',
         'comments',
         'likedBy',
+        'participants', // participants 관계 추가
         'swimmingRecord',
         'trainingProgram',
       ],
@@ -608,7 +612,7 @@ export class PostsService {
   async joinTrainingRecruitment(postId: number, userId: number): Promise<void> {
     const post = await this.postsRepository.findOne({
       where: { id: postId, category: '훈련 모집' },
-      relations: ['likedBy'],
+      relations: ['participants'], // likedBy 대신 participants 사용
     });
 
     if (!post) {
@@ -623,8 +627,8 @@ export class PostsService {
       throw new ForbiddenException('모집 인원이 가득 찼습니다.');
     }
 
-    // 이미 참여 중인지 확인
-    const isAlreadyParticipating = post.likedBy?.some(
+    // 이미 참여 중인지 확인 (participants 사용)
+    const isAlreadyParticipating = post.participants?.some(
       (user) => user.id === userId,
     );
     if (isAlreadyParticipating) {
@@ -637,9 +641,9 @@ export class PostsService {
       throw new NotFoundException('사용자를 찾을 수 없습니다.');
     }
 
-    // 참여자 추가 (좋아요로 참여 표시)
-    post.likedBy = post.likedBy || [];
-    post.likedBy.push(user);
+    // 참여자 추가 (participants에 추가)
+    post.participants = post.participants || [];
+    post.participants.push(user);
 
     // 참여자 수 증가 (안전한 처리)
     post.currentParticipants = (post.currentParticipants || 0) + 1;
@@ -656,21 +660,23 @@ export class PostsService {
   ): Promise<void> {
     const post = await this.postsRepository.findOne({
       where: { id: postId, category: '훈련 모집' },
-      relations: ['likedBy'],
+      relations: ['participants'], // likedBy 대신 participants 사용
     });
 
     if (!post) {
       throw new NotFoundException('훈련 모집 글을 찾을 수 없습니다.');
     }
 
-    // 참여 중인지 확인
-    const isParticipating = post.likedBy?.some((user) => user.id === userId);
+    // 참여 중인지 확인 (participants 사용)
+    const isParticipating = post.participants?.some(
+      (user) => user.id === userId,
+    );
     if (!isParticipating) {
       throw new ForbiddenException('참여 중이 아닙니다.');
     }
 
-    // 참여자 제거
-    post.likedBy = post.likedBy.filter((user) => user.id !== userId);
+    // 참여자 제거 (participants에서 제거)
+    post.participants = post.participants.filter((user) => user.id !== userId);
 
     // 참여자 수 감소 (안전한 처리)
     post.currentParticipants = Math.max(0, (post.currentParticipants || 0) - 1);
@@ -703,6 +709,12 @@ export class PostsService {
       ? post.likedBy?.some((user) => user.id === currentUserId) || false
       : false;
 
+    // 훈련 모집 카테고리에서만 참여 상태 확인 (participants 사용)
+    const isParticipating =
+      post.category === '훈련 모집' && currentUserId
+        ? post.participants?.some((user) => user.id === currentUserId) || false
+        : false;
+
     return {
       id: post.id,
       title: post.title,
@@ -715,6 +727,9 @@ export class PostsService {
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
       isLiked,
+      isParticipating, // 훈련 참여 상태 추가
+      likedBy: post.likedBy || [], // 좋아요한 사용자들
+      participants: post.participants || [], // 훈련 참여자들
       swimmingRecord: post.swimmingRecord
         ? {
             id: post.swimmingRecord.id,
