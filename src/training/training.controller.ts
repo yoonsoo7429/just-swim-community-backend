@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { TrainingService } from './training.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { CreateTrainingProgramDto } from './dto/create-training-program.dto';
+import { CreateTrainingProgramDto, UpdateTrainingProgramDto } from './dto';
 
 @Controller('training')
 @UseGuards(JwtAuthGuard)
@@ -20,8 +20,14 @@ export class TrainingController {
   constructor(private readonly trainingService: TrainingService) {}
 
   @Post('programs')
-  createProgram(@Body() programData: CreateTrainingProgramDto, @Request() req: any) {
-    return this.trainingService.createProgram(programData, req.user.id);
+  createProgram(
+    @Body() createTrainingProgramDto: CreateTrainingProgramDto,
+    @Request() req: any,
+  ) {
+    return this.trainingService.createProgram(
+      createTrainingProgramDto,
+      req.user.id,
+    );
   }
 
   @Get('programs/my-programs')
@@ -42,10 +48,14 @@ export class TrainingController {
   @Patch('programs/:id')
   updateProgram(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateData: Partial<CreateTrainingProgramDto>,
+    @Body() updateTrainingProgramDto: UpdateTrainingProgramDto,
     @Request() req: any,
   ) {
-    return this.trainingService.updateProgram(id, updateData, req.user.id);
+    return this.trainingService.updateProgram(
+      id,
+      updateTrainingProgramDto,
+      req.user.id,
+    );
   }
 
   @Delete('programs/:id')

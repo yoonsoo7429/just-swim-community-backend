@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsNumber, IsBoolean, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsBoolean } from 'class-validator';
 
 export class CreateTrainingProgramDto {
   @IsString()
@@ -13,45 +13,10 @@ export class CreateTrainingProgramDto {
   difficulty?: string;
 
   @IsOptional()
-  @IsEnum(['regular', 'short-term'])
-  type?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Max(52)
-  totalWeeks?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Max(7)
-  sessionsPerWeek?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Max(100)
-  totalSessions?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(10)
-  @Max(480)
-  estimatedDuration?: number;
-
-  @IsOptional()
   @IsEnum(['private', 'public'])
   visibility?: string;
 
   @IsOptional()
   @IsBoolean()
   isPublished?: boolean;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Max(100)
-  maxParticipants?: number;
 }
-

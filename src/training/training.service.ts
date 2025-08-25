@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TrainingProgram } from './entities/training-program.entity';
+import { CreateTrainingProgramDto, UpdateTrainingProgramDto } from './dto';
 
 @Injectable()
 export class TrainingService {
@@ -16,11 +17,11 @@ export class TrainingService {
 
   // Training Program Methods
   async createProgram(
-    programData: Partial<TrainingProgram>,
+    createTrainingProgramDto: CreateTrainingProgramDto,
     userId: number,
   ): Promise<TrainingProgram> {
     const program = this.trainingProgramRepository.create({
-      ...programData,
+      ...createTrainingProgramDto,
       user: { id: userId },
     });
     return await this.trainingProgramRepository.save(program);
@@ -63,7 +64,7 @@ export class TrainingService {
 
   async updateProgram(
     id: number,
-    programData: Partial<TrainingProgram>,
+    updateTrainingProgramDto: UpdateTrainingProgramDto,
     userId: number,
   ): Promise<TrainingProgram> {
     const program = await this.findProgramById(id);
@@ -71,7 +72,7 @@ export class TrainingService {
       throw new ForbiddenException('You can only update your own programs');
     }
 
-    Object.assign(program, programData);
+    Object.assign(program, updateTrainingProgramDto);
     return await this.trainingProgramRepository.save(program);
   }
 
@@ -145,8 +146,6 @@ export class TrainingService {
       user: { id: userId },
     });
 
-    const savedProgram = await this.trainingProgramRepository.save(newProgram);
-
-    return savedProgram;
+    return await this.trainingProgramRepository.save(newProgram);
   }
 }
