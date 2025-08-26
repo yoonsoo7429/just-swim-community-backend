@@ -101,6 +101,9 @@ export class Post extends BaseEntity {
   @Column({ type: 'varchar', length: 100, nullable: true })
   location?: string;
 
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  participationFee?: number; // 참가료 (원 단위, 소수점 2자리까지)
+
   @Column({ type: 'int', nullable: true })
   maxParticipants?: number;
 

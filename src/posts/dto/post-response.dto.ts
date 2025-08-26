@@ -45,6 +45,7 @@ export class PostResponseDto {
     meetingTime?: string;
     meetingDateTime?: Date;
     location?: string;
+    participationFee?: number;
     maxParticipants?: number;
     currentParticipants?: number;
     status?: string;

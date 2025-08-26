@@ -39,6 +39,7 @@ export class PostsService {
 
     const post = this.postsRepository.create({
       ...createPostDto,
+      trainingProgram: { id: createPostDto.trainingProgramId },
       author: { id: userId },
     });
 
@@ -248,7 +249,7 @@ export class PostsService {
         'author',
         'comments',
         'likedBy',
-        'participants', // participants 관계 추가
+        'participants',
         'swimmingRecord',
         'trainingProgram',
       ],
@@ -268,7 +269,7 @@ export class PostsService {
         'comments',
         'comments.author',
         'likedBy',
-        'participants', // participants 관계 추가
+        'participants',
         'swimmingRecord',
         'trainingProgram',
       ],
@@ -287,7 +288,7 @@ export class PostsService {
         'author',
         'comments',
         'likedBy',
-        'participants', // participants 관계 추가
+        'participants',
         'swimmingRecord',
         'trainingProgram',
       ],
@@ -317,7 +318,7 @@ export class PostsService {
         'author',
         'comments',
         'likedBy',
-        'participants', // participants 관계 추가
+        'participants',
         'swimmingRecord',
         'trainingProgram',
       ],
@@ -727,9 +728,9 @@ export class PostsService {
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
       isLiked,
-      isParticipating, // 훈련 참여 상태 추가
-      likedBy: post.likedBy || [], // 좋아요한 사용자들
-      participants: post.participants || [], // 훈련 참여자들
+      isParticipating,
+      likedBy: post.likedBy || [],
+      participants: post.participants || [],
       swimmingRecord: post.swimmingRecord
         ? {
             id: post.swimmingRecord.id,
@@ -752,7 +753,6 @@ export class PostsService {
             isPublished: post.trainingProgram.isPublished,
           }
         : undefined,
-      // 훈련 모집 관련 정보 추가
       recruitmentInfo:
         post.category === '훈련 모집'
           ? {
@@ -761,6 +761,7 @@ export class PostsService {
               meetingTime: post.meetingTime || '',
               meetingDateTime: post.meetingDateTime || undefined,
               location: post.location || '',
+              participationFee: post.participationFee || 0,
               maxParticipants: post.maxParticipants || 0,
               currentParticipants: post.currentParticipants || 0,
               status: post.recruitmentStatus || 'open',

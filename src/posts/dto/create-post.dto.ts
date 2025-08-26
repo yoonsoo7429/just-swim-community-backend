@@ -6,6 +6,8 @@ import {
   IsArray,
   IsNumber,
   IsDate,
+  Min,
+  Max,
 } from 'class-validator';
 import { PostCategory } from '../entities/post.entity';
 
@@ -51,6 +53,12 @@ export class CreatePostDto {
   @IsOptional()
   @IsString()
   location?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(99999999.99)
+  participationFee?: number; // 참가료 (원 단위, 소수점 2자리까지)
 
   @IsOptional()
   @IsNumber()
