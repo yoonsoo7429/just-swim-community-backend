@@ -10,6 +10,7 @@ import {
   Max,
 } from 'class-validator';
 import { PostCategory } from '../entities/post.entity';
+import { IsInt } from 'class-validator';
 
 export class CreatePostDto {
   @IsString()
@@ -32,6 +33,11 @@ export class CreatePostDto {
   @IsOptional()
   @IsNumber()
   trainingProgramId?: number;
+
+  // 챌린지 카테고리일 때 선택적으로 연결할 실제 챌린지 ID
+  @IsOptional()
+  @IsInt()
+  challengeId?: number;
 
   @IsOptional()
   @IsString()

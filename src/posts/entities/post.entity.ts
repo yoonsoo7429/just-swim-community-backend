@@ -14,6 +14,7 @@ import { User } from '../../users/entities/user.entity';
 import { Comment } from '../../comments/entities/comment.entity';
 import { SwimmingRecord } from '../../swimming/entities/swimming.entity';
 import { TrainingProgram } from '../../training/entities/training-program.entity';
+import { Challenge } from '../../social/entities/challenge.entity';
 import { BaseEntity } from 'src/common/entities/base.entity';
 
 export enum PostCategory {
@@ -82,6 +83,11 @@ export class Post extends BaseEntity {
   @ManyToOne(() => TrainingProgram, { nullable: true })
   @JoinColumn({ name: 'trainingProgramId' })
   trainingProgram: TrainingProgram;
+
+  // 커뮤니티 챌린지 글과 실제 챌린지 리소스 연결 (선택)
+  @ManyToOne(() => Challenge, { nullable: true })
+  @JoinColumn({ name: 'challengeId' })
+  challenge?: Challenge;
 
   // 훈련 모집 관련 필드들 (category가 '훈련 모집'일 때만 사용)
   @Column({ type: 'varchar', length: 20, nullable: true })

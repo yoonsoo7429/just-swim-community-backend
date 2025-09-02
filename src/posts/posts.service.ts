@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Not, IsNull, In, MoreThanOrEqual } from 'typeorm';
 import { Post } from './entities/post.entity';
+import { Challenge } from '../social/entities/challenge.entity';
 import { CreatePostDto, UpdatePostDto } from './dto';
 import { PostResponseDto } from './dto/post-response.dto';
 import { User } from '../users/entities/user.entity';
@@ -24,6 +25,8 @@ export class PostsService {
     private swimmingRecordsRepository: Repository<SwimmingRecord>,
     @InjectRepository(TrainingProgram)
     private trainingProgramsRepository: Repository<TrainingProgram>,
+    @InjectRepository(Challenge)
+    private challengesRepository: Repository<Challenge>,
 
     private commentsService: CommentsService,
   ) {}
@@ -39,7 +42,12 @@ export class PostsService {
 
     const post = this.postsRepository.create({
       ...createPostDto,
-      trainingProgram: { id: createPostDto.trainingProgramId },
+      trainingProgram: createPostDto.trainingProgramId
+        ? { id: createPostDto.trainingProgramId }
+        : undefined,
+      challenge: createPostDto.challengeId
+        ? ({ id: createPostDto.challengeId } as Challenge)
+        : undefined,
       author: { id: userId },
     });
 
@@ -252,6 +260,7 @@ export class PostsService {
         'participants',
         'swimmingRecord',
         'trainingProgram',
+        'challenge',
       ],
       order: { createdAt: 'DESC' },
     });
@@ -272,6 +281,7 @@ export class PostsService {
         'participants',
         'swimmingRecord',
         'trainingProgram',
+        'challenge',
       ],
     });
 
@@ -751,6 +761,20 @@ export class PostsService {
             description: post.trainingProgram.description,
             visibility: post.trainingProgram.visibility,
             isPublished: post.trainingProgram.isPublished,
+          }
+        : undefined,
+      challenge: post.challenge
+        ? {
+            id: post.challenge.id,
+            title: post.challenge.title,
+            category: post.challenge.category,
+            status: post.challenge.status,
+            targetValue: post.challenge.targetValue,
+            unit: post.challenge.unit,
+            startDate: post.challenge.startDate,
+            endDate: post.challenge.endDate,
+            rewardXP: post.challenge.rewardXP,
+            rewardPoints: post.challenge.rewardPoints,
           }
         : undefined,
       recruitmentInfo:

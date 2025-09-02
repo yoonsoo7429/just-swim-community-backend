@@ -2,6 +2,8 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  forwardRef,
+  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,6 +14,11 @@ import { User } from '../users/entities/user.entity';
 import { SwimmingLike } from './entities/swimming-like.entity';
 import { SwimmingComment } from './entities/swimming-comment.entity';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { BadgesService } from '../badges/badges.service';
+import { LevelsService } from '../levels/levels.service';
+import { GoalsService } from '../goals/goals.service';
+import { StreakType } from '../goals/entities/streak.entity';
+import { SocialService } from '../social/social.service';
 
 @Injectable()
 export class SwimmingService {
@@ -24,12 +31,20 @@ export class SwimmingService {
     private swimmingLikeRepository: Repository<SwimmingLike>,
     @InjectRepository(SwimmingComment)
     private swimmingCommentRepository: Repository<SwimmingComment>,
+    @Inject(forwardRef(() => BadgesService))
+    private badgesService: BadgesService,
+    @Inject(forwardRef(() => LevelsService))
+    private levelsService: LevelsService,
+    @Inject(forwardRef(() => GoalsService))
+    private goalsService: GoalsService,
+    @Inject(forwardRef(() => SocialService))
+    private socialService: SocialService,
   ) {}
 
   async create(
     createSwimmingDto: CreateSwimmingDto,
     userId: number,
-  ): Promise<SwimmingRecord> {
+  ): Promise<{ record: SwimmingRecord; newBadges: any[]; levelUp: any }> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
     });
@@ -43,7 +58,55 @@ export class SwimmingService {
       user: user,
     });
 
-    return await this.swimmingRepository.save(swimming);
+    const savedRecord = await this.swimmingRepository.save(swimming);
+
+    // XP 계산 및 추가
+    const xpEarned = this.levelsService.calculateXPFromRecord(savedRecord);
+    const levelUpInfo = await this.levelsService.addXPAndCheckLevelUp(
+      userId,
+      xpEarned,
+    );
+
+    // 배지 확인 및 수여
+    const newBadges = await this.badgesService.checkAndAwardBadges(userId);
+
+    // 배지로부터 추가 XP 획득
+    if (newBadges.length > 0) {
+      let badgeXP = 0;
+      for (const userBadge of newBadges) {
+        badgeXP += this.levelsService.calculateXPFromBadge(
+          userBadge.badge.points,
+        );
+      }
+
+      if (badgeXP > 0) {
+        const additionalLevelUp = await this.levelsService.addXPAndCheckLevelUp(
+          userId,
+          badgeXP,
+        );
+        if (additionalLevelUp.leveledUp) {
+          levelUpInfo.leveledUp = true;
+          levelUpInfo.newLevel = additionalLevelUp.newLevel;
+          levelUpInfo.xpAdded += additionalLevelUp.xpAdded;
+        }
+      }
+    }
+
+    // 스트릭 업데이트
+    await this.goalsService.updateStreak(
+      userId,
+      StreakType.SWIMMING,
+      new Date(savedRecord.sessionDate),
+    );
+
+    // 챌린지 진행도 업데이트
+    await this.updateChallengeProgress(userId, savedRecord);
+
+    return {
+      record: savedRecord,
+      newBadges,
+      levelUp: levelUpInfo,
+    };
   }
 
   async findAll(): Promise<SwimmingRecord[]> {
@@ -333,5 +396,74 @@ export class SwimmingService {
       },
     });
     return !!like;
+  }
+
+  // 챌린지 진행도 업데이트
+  private async updateChallengeProgress(
+    userId: number,
+    swimmingRecord: SwimmingRecord,
+  ): Promise<void> {
+    try {
+      // 사용자가 참가 중인 활성 챌린지들 조회
+      const userChallenges = await this.socialService.getUserChallenges(userId);
+
+      for (const challengeInfo of userChallenges) {
+        const { challenge, userParticipation } = challengeInfo;
+
+        // 챌린지가 활성 상태이고 사용자가 참가 중인 경우만 처리
+        if (
+          challenge.status === 'active' &&
+          userParticipation &&
+          userParticipation.status === 'joined'
+        ) {
+          // 챌린지 카테고리에 따라 진행도 계산
+          let progressToAdd = 0;
+
+          switch (challenge.category) {
+            case 'distance':
+              // 거리 챌린지: 수영 기록의 총 거리 추가
+              progressToAdd = swimmingRecord.totalDistance;
+              break;
+            case 'duration':
+              // 시간 챌린지: 수영 기록의 총 시간 추가
+              progressToAdd = swimmingRecord.totalDuration;
+              break;
+            case 'frequency':
+              // 빈도 챌린지: 1회 추가
+              progressToAdd = 1;
+              break;
+            case 'stroke':
+              // 특정 영법 챌린지: 해당 영법의 거리 추가
+              if (challenge.metadata?.targetStroke && swimmingRecord.strokes) {
+                const targetStroke = challenge.metadata.targetStroke;
+                const strokeRecord = swimmingRecord.strokes.find(
+                  (stroke: any) => stroke.style === targetStroke,
+                );
+                if (strokeRecord) {
+                  progressToAdd = strokeRecord.distance;
+                }
+              }
+              break;
+            default:
+              // 기본적으로 거리로 계산
+              progressToAdd = swimmingRecord.totalDistance;
+          }
+
+          if (progressToAdd > 0) {
+            // 진행도 업데이트
+            const newProgress =
+              userParticipation.currentProgress + progressToAdd;
+            await this.socialService.updateChallengeProgress(
+              userId,
+              challenge.id,
+              newProgress,
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to update challenge progress:', error);
+      // 챌린지 진행도 업데이트 실패는 수영 기록 생성에 영향을 주지 않도록 함
+    }
   }
 }

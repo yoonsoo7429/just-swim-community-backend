@@ -38,6 +38,20 @@ export class PostResponseDto {
     isPublished?: boolean;
   };
 
+  // 연동된 챌린지 정보
+  challenge?: {
+    id: number;
+    title: string;
+    category: string;
+    status: string;
+    targetValue: number;
+    unit: string;
+    startDate: Date;
+    endDate: Date;
+    rewardXP: number;
+    rewardPoints: number;
+  };
+
   // 훈련 모집 관련 정보 (category가 '훈련 모집'일 때만)
   recruitmentInfo?: {
     type?: string;

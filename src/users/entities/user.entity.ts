@@ -4,6 +4,7 @@ import { SwimmingRecord } from '../../swimming/entities/swimming.entity';
 import { Comment } from '../../comments/entities/comment.entity';
 import { TrainingProgram } from '../../training/entities/training-program.entity';
 import { Post } from '../../posts/entities/post.entity';
+import { UserBadge } from '../../badges/entities/user-badge.entity';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -28,6 +29,18 @@ export class User extends BaseEntity {
   @Column({ type: 'varchar', length: 20, default: 'beginner' })
   level: string;
 
+  @Column({ type: 'int', default: 0 })
+  experience: number; // 총 경험치
+
+  @Column({ type: 'int', default: 1 })
+  userLevel: number; // 현재 레벨
+
+  @Column({ type: 'varchar', nullable: true })
+  title: string; // 특별 칭호
+
+  @Column({ type: 'text', nullable: true })
+  bio: string; // 자기소개
+
   @OneToMany(() => SwimmingRecord, (record) => record.user)
   swimmingRecords: SwimmingRecord[];
 
@@ -39,4 +52,7 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Post, (post) => post.author)
   posts: Post[];
+
+  @OneToMany(() => UserBadge, (userBadge) => userBadge.user)
+  badges: UserBadge[];
 }

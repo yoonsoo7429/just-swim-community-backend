@@ -12,6 +12,12 @@ import { TrainingReviewModule } from './training-review/training-review.module';
 import { SwimmingModule } from './swimming/swimming.module';
 import { PostsModule } from './posts/posts.module';
 import { CommentsModule } from './comments/comments.module';
+import { BadgesModule } from './badges/badges.module';
+import { LevelsModule } from './levels/levels.module';
+import { LeaderboardsModule } from './leaderboards/leaderboards.module';
+import { GoalsModule } from './goals/goals.module';
+import { SocialModule } from './social/social.module';
+import { MessagesModule } from './messages/messages.module';
 import { envValidationSchema } from './config/env.validation';
 
 @Module({
@@ -43,6 +49,12 @@ import { envValidationSchema } from './config/env.validation';
     SwimmingModule,
     PostsModule,
     CommentsModule,
+    BadgesModule,
+    LevelsModule,
+    LeaderboardsModule,
+    GoalsModule,
+    SocialModule,
+    MessagesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
