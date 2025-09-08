@@ -22,3 +22,5 @@ export class CreateMessageDto {
   @IsOptional()
   metadata?: any;
 }
+
+

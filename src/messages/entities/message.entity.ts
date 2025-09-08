@@ -33,3 +33,5 @@ export class Message extends BaseEntity {
   @Column({ type: 'json', nullable: true })
   metadata: any; // 추가 데이터 (이미지 URL, 챌린지 ID 등)
 }
+
+

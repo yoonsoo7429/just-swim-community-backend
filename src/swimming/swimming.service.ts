@@ -221,16 +221,16 @@ export class SwimmingService {
       }
     });
 
-    // 월별 통계 (최근 6개월)
+    // 월별 통계 (최근 6개월) - PostgreSQL 문법
     const monthlyStats = await this.swimmingRepository
       .createQueryBuilder('swimming')
-      .select('DATE_FORMAT(swimming.sessionDate, "%Y-%m")', 'month')
+      .select("TO_CHAR(swimming.sessionDate, 'YYYY-MM')", 'month')
       .addSelect('COUNT(*)', 'sessions')
       .addSelect('SUM(swimming.totalDistance)', 'distance')
       .addSelect('SUM(swimming.totalDuration)', 'duration')
       .where('swimming.user.id = :userId', { userId })
-      .andWhere('swimming.sessionDate >= DATE_SUB(NOW(), INTERVAL 6 MONTH)')
-      .groupBy('month')
+      .andWhere("swimming.sessionDate >= NOW() - INTERVAL '6 months'")
+      .groupBy("TO_CHAR(swimming.sessionDate, 'YYYY-MM')")
       .orderBy('month', 'DESC')
       .getRawMany();
 
